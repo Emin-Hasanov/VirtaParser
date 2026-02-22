@@ -26,6 +26,7 @@ class Unit
     def(int, equip, 0);
     def(float, equip_qual, 0.0);
     def(float, wear, 0.0);
+    def(bool, holidays,false);
 
 public:
 
@@ -173,6 +174,7 @@ int process_unit(Unit *current, fs::path filepath)
         current->jsparn(equip, js_buf, "equipment_count", "0");
         current->jsparn(equip_qual, js_buf, "equipment_quality", "0");
         current->jsparn(wear, js_buf, "equipment_wear", "0");
+
         //employee_count; employee_salary; employee_level; equipment_count	equipment_quality	equipment_wear
 
         //current->set
