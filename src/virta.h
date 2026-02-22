@@ -10,7 +10,8 @@
 #include <chrono>
 
 
-#include "json.hpp"
+#include "3pl/json.hpp"
+#include "3pl/yelloger.h"
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -19,10 +20,12 @@ using json = nlohmann::json;
 extern struct curl_slist *log_info;
 extern fs::path exp_data;
 extern fs::path ext_data;
+extern fstream file;
 
 extern string server;
 extern string url_base;
 extern string url;
+extern bool work_local;
 
 typedef enum  {READ, WRITE, REWRITE, RW} FileOpType;
 
@@ -107,7 +110,7 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
         /* always cleanup */
         curl_easy_cleanup(curl);
         //
-        this_thread::sleep_for(20ms);
+        this_thread::sleep_for(10ms);
     }
 
     return 0;
@@ -126,5 +129,7 @@ extern bool check_access(string serv, int company);
 extern void fill_vs(string str, vector<string> *v);
 
 extern bool DownloadParseFormat(string link, json* json_entry, fstream *target, string pathway);
+
+extern void locality();
 
 #endif //_VIRTA_H_

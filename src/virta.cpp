@@ -4,17 +4,19 @@ struct curl_slist *log_info;
 
 fs::path exp_data = "data";
 fs::path ext_data = "ext_data";
+fstream file;
 string server;
 string url_base = "https://virtonomics.com/api/" + server + "/main/";
 string url = url_base;
+bool work_local = false;
 
 //typedef enum  {READ, WRITE, REWRITE, RW} FileOpType;
 
 size_t write_callback_file(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    ofstream *file = static_cast<ofstream*>(userdata);
+    ofstream *temp = static_cast<ofstream*>(userdata);
     size_t written = size * nmemb;
-    file->write(static_cast<const char*>(ptr), written);
+    temp->write(static_cast<const char*>(ptr), written);
     return written;
 
 }
@@ -30,14 +32,14 @@ size_t write_callback_str(char *ptr, size_t size, size_t nmemb, void *userdata)
 
 string valnut (json js, string key, string def)
 {
-    try
-    {
-        return (to_string(js.at(key)) == "") ? def :
-               (to_string(js.at(key)));
-    }
-    catch (json::out_of_range)
-    {
+    auto temp = js.at(key);
+    //cout << temp << endl;
+    json emp;
+    if (temp == emp)
         return def;
+    else
+    {
+        return js.value(key, def);
     }
 }
 
@@ -111,10 +113,10 @@ bool check_access(string serv, int company)
     while (each)
     {
         string line(each->data);
-
-        int start_pos = line.find("_mm_user_");
+        size_t start_pos = line.find("_mm_user_");
         if (start_pos != string::npos)
         {
+            //cout << line << endl;
             //cout << "data of this cookie line is " << line << endl;
             user_id_cookie = stoi( line.substr(start_pos + 10));
             //cout << "userid by cookie: " << user_id_cookie << endl;
@@ -170,7 +172,7 @@ bool DownloadParseFormat(string link, json* json_entry, fstream *target, string 
     try
     {
         (*json_entry) = json::parse(tmp);
-        cout << "Size of current json is " << json_entry->size() << endl;
+        //cout << "Size of current json is " << json_entry->size() << endl;
         try_open_file(target, pathway, WRITE, "Error opening file for write.");
         if (target->is_open())
         {
@@ -192,4 +194,48 @@ bool DownloadParseFormat(string link, json* json_entry, fstream *target, string 
     }
     target->close();
     return true;
+}
+
+void locality()
+{
+    if(!work_local)
+    {
+        // Initialize libcurl
+        if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0)
+        {
+            Yellog::Critical("curl_global_init() failed");
+            //return 1;
+        }
+        Yellog::Debug("Initializing connection...");
+        url = "https://virtonomics.com/olga/main/user/login";
+        Yellog::Debug("URL is %s", url.c_str());
+        string params = "userData[login]=" + (string)getenv("vma_login") + "&userData[password]=" + (string)getenv("vma_password");
+
+        if (connect(url, false, &file, params))
+        {
+            Yellog::Warn("Connection to login failed! Working in local mode..." );
+            work_local = true;
+            //cout << url_base << endl;
+            //return 1;
+        }
+        else
+        {
+            Yellog::Info("Connection to login successful...");
+            url = url_base + "game/processing";
+            Yellog::Debug("URL is %s", url.c_str());
+            params = "";
+            connect(url, true, &params);
+            json data_turn =  json::parse(params);
+            //cout << data_turn.dump(2);
+            if(data_turn.value("started", true) == true)
+            {
+                Yellog::Warn("There is turn update now! Unable to receive info! Local mode...");
+                work_local = true;
+            }
+            else
+            {
+                Yellog::Info("Connection to server successful! Working in internet mode...");
+            }
+        }
+    }
 }

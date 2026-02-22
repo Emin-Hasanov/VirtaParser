@@ -52,7 +52,7 @@ vector<int> products;
 /*
     Arguments:
     -o - option (1 - Company; 2 - Markets);
-    -s - server (vera, olga, mary,lien, nika)
+    -s - server (vera, olga, mary, lien, nika)
     -c - id of company (number)
     -g - geocodes of (city) markets **possible to use countries/regions names (aggregate all city markets of geo) / "World" to get all markets / "Local" to ger ids from file "cities.data"
     (countries with 1 region using same name for country and region)
@@ -60,18 +60,19 @@ vector<int> products;
     -h - add history
     -ms - add major shops
     -e - export to repo
+    -l - explicitly use local files
     */
 void launch_args(int args_num, char const *args_vals[])
 {
     if (args_num > 1)
     {
-        cout << "Working in (semi)-automatic mode..." << endl;
+        Yellog::Info("Working in (semi)-automatic mode...");
         automat = true;
     }
     for (int i = 0; i < args_num; i++)
     {
         string current_arg = args_vals[i];
-        cout << "Current is " << current_arg << endl;
+        //cout << "Current is " << current_arg << endl;
         if (current_arg == "-o")
         {
             option = stoi(args_vals[i + 1]);
@@ -277,13 +278,18 @@ void launch_args(int args_num, char const *args_vals[])
 
             }
             if(products.size() != 0)
-                cout << "Product IDs added sucessully!" << endl;
+                Yellog::Info("Product IDs added sucessully!");
             /*cout << "Product ids are:" << endl;
             for (int prods : products)
             {
                 cout << prods << "; ";
             }
             cout << endl;*/
+        }
+        if(current_arg == "-l")
+        {
+            work_local = true;
+            Yellog::Warn("Local mode turned on: no files will be downloaded!");
         }
         if (current_arg == "-e")
         {
@@ -294,6 +300,19 @@ void launch_args(int args_num, char const *args_vals[])
 
 int main(int argc, char const *argv[])
 {
+    fs::path log_place = "logs";
+    fs::create_directories(log_place);
+    log_place = log_place / ((string)getenv("data") + ".log");
+    Yellog::EnableFileOutput(log_place.c_str());
+    Yellog::SetTimestampFormat("%Y-%m-%d %t %T");
+    Yellog::SetPriority(Yellog::DebugPriority);
+
+    if ((getenv("vma_login") == nullptr) || (getenv("vma_password") == nullptr))
+    {
+        Yellog::Critical("No login data...");
+        return -1;
+    }
+
 
     int server_type;
     //string server;
@@ -376,6 +395,7 @@ int main(int argc, char const *argv[])
                     cin >> server;
                     server_type = server_check(server);
                 }
+                url_base.insert(28, server);
             }
             if (cities.size() == 0)
             {

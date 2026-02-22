@@ -9,7 +9,7 @@ bool MarketsToday(fstream *today_file, string city, string product)
     cout << "Today market..." << "\t";
     //cout << "URL: " << url << endl;
     string tmp;
-    if(connect<string>(url, true, &tmp) )
+    if(connect(url, true, &tmp) )
     {
         cerr << "Error! Connection failed" << endl;
         return false;
@@ -17,8 +17,11 @@ bool MarketsToday(fstream *today_file, string city, string product)
     try
     {
         json data_prod = json::parse(tmp);
+        //cout << data_prod.dump(4);
         (*today_file) << product << ";" << data_prod.value("avg_price", "0") << ";" << data_prod.value("local_market_size", "0") << ";";
+        //cout << "part 1..." ;
         (*today_file) << stoi(data_prod.value("avg_price", "0"))*stoi(data_prod.value("local_market_size", "0")) << ";" << data_prod.value("index_min", "0") << endl;
+        //cout << "part 2..." ;
     }
     catch(...)
     {
@@ -34,7 +37,7 @@ bool MarketsHistory(fs::path pathway, string city, string product)
     cout << "History of market..." << "\t";
     //cout << "URL (history): " << url << endl;
     string tmp;
-    if(connect<string>(url, true, &tmp))
+    if(connect(url, true, &tmp))
     {
         cerr << "Error! Connection failed" << endl;
         return false;
@@ -69,13 +72,14 @@ bool MarketsHistory(fs::path pathway, string city, string product)
         cout << "Last net turn is " << last_turn_net << endl;
         int new_turns = last_turn_net - last_turn_local;
         cout << "Turn needed to add is " << new_turns << endl;
-        if (new_turns > 61)
-            new_turns = 61;
+        int net_size = js_tmp.size();
+        if (new_turns > net_size)
+            new_turns = net_size;
         if(new_turns > 0)
-            for(int i = 61 - new_turns; i < 61; i++)
+            for(int i = net_size - new_turns; i < net_size; i++)
             {
                 json new_info = js_tmp.at(i);
-                cout << "New turn info: " << endl << new_info.dump(4) << endl;
+                //cout << "New turn info: " << endl << new_info.dump(4) << endl;
                 data_prod.emplace_back(new_info);
                 //data_prod.insert(data_prod.end(), js_tmp.begin() + i);
                 try_open_file(&history_file, history_path, REWRITE, "Error! File for historical data not opened");
@@ -111,38 +115,11 @@ bool MarketsMajorShops(fs::path pathway, string city, string product)
 
 int MarketsParse(string realm, vector<int> cities, vector<int> products)
 {
-    //url_base = "https://virtonomics.com/api/" + server + "/main/";
+    locality();
+
     market_link  = url_base + "marketing/report/retail/";
-
-    fstream file;
-    //bool work_local = false;
-
-    // Initialize libcurl
-    if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0)
-    {
-        fprintf(stderr, "curl_global_init() failed\n");
-        return 1;
-    }
-    cout << "Initializing connection..." << endl;
-
-    url = "https://virtonomics.com/" + realm + "/main/user/login";
-    cout << "URL is " << url << endl;
-    string params = "userData[login]=" + (string)getenv("vma_login") + "&userData[password]=" + (string)getenv("vma_password");
-
-    if (connect<fstream>(url, false, &file, params))
-    {
-        cout << "Connection to login failed! Working in local mode..." << endl;
-        //work_local = true;
-        return 1;
-    }
-    else
-    {
-        cout << "Connection to server successful! Working in internet mode..." << endl;
-    }
-
     fs::path ext_base = ext_data / "markets";
     fs::path markets = exp_data / "markets";
-
     fs::create_directories(markets);
 
     vector<string> fields;
