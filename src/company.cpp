@@ -24,7 +24,8 @@ class Unit
     def(float, salary, 0.0);
     def(float, qualification, 0.0);
     def(int, equip, 0);
-    def(float, equip_qual,0.0);
+    def(float, equip_qual, 0.0);
+    def(float, wear, 0.0);
 
 public:
 
@@ -65,6 +66,7 @@ public:
     setflt(qualification)
     setint(equip)
     setflt(equip_qual)
+    setflt(wear)
 
     int getID()
     {
@@ -102,7 +104,8 @@ public:
     get(float, salary)
     get(float, qualification)
     get(int, equip)
-    get(float,equip_qual)
+    get(float, equip_qual)
+    get(float, wear)
 
     void printFields(fstream *file = nullptr)
     {
@@ -123,7 +126,7 @@ public:
         }
         cout << this->id << ";" << this->name << ";" << this->regOfficeID << ";" << this->cityID << ";" << this->kind << ";";
         cout << this->type << ";" << this->unitSize << ";" << this->tech << ";" refout(employees) refout(salary) refout(qualification) refout(equip);
-        cout refout(equip_qual) << endl;
+        cout refout(equip_qual) refout(wear) << endl;
         cout.rdbuf(cout_buff);
     }
 };
@@ -168,7 +171,8 @@ int process_unit(Unit *current, fs::path filepath)
         current->jsparn(salary, js_buf, "employee_salary", "0");
         current->jsparn(qualification, js_buf, "employee_level", "0");
         current->jsparn(equip, js_buf, "equipment_count", "0");
-        current->jsparn(equip_qual,js_buf,"equipment_quality","0");
+        current->jsparn(equip_qual, js_buf, "equipment_quality", "0");
+        current->jsparn(wear, js_buf, "equipment_wear", "0");
         //employee_count; employee_salary; employee_level; equipment_count	equipment_quality	equipment_wear
 
         //current->set
