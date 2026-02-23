@@ -20,7 +20,7 @@ astyle -A1 --pad-oper -n ./src/menu.cpp ./src/virta.cpp ./src/virta.h ./src/reta
 
 echo "Compiling..."
 #g++ -c -I./curlplus ./src/VC.cpp
-g++  ./src/retail.cpp ./src/company.cpp ./src/menu.cpp ./src/virta.cpp ./src/unit.cpp -o VirtaParse -lcurl
+g++  ./src/retail.cpp ./src/company.cpp ./src/menu.cpp ./src/virta.cpp ./src/unit.cpp -o VirtaParse -lcurl -std=gnu++20
 
 ReturnComp=$?
 

@@ -224,7 +224,7 @@ int CompanyParse(string serv, int company_id)
         Yellog::Debug("Unit %s processed in %d  microseconds", curr_id.c_str(), durationOne.count());
         if(!i)
         {
-            Yellog::Info("Approximate time to execute: %f  seconds", durationApprox/1000000.0);//(chrono::duration_cast<chrono::seconds>(durationApprox)).count());
+            Yellog::Info("Approximate time to execute: %f  seconds", durationApprox/1000000.0);
         }
         //cout << "Kind is " << kind << endl;
 
