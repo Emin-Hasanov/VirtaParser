@@ -1,8 +1,3 @@
-/*#include <iostream>
-#include <limits>
-#include <vector>
-#include <string>*/
-#include <limits>
 #include "retail.h"
 #include "company.h"
 
@@ -29,15 +24,15 @@ void menu()
 {
     cout << "Wellcome to VirtaParser!" << endl;
     cout << endl;
-    cout << "Choose needed parse:" << endl;
+    cout << "Choose needed parse:  " << endl;
     cout << "----------------------" << endl;
-    cout << "1 - Company and units" << endl;
+    cout << "1 - Company and units " << endl;
     cout << "----------------------" << endl;
-    cout << "2 - Markets in cities" << endl;
+    cout << "2 - Retail markets    " << endl;
     cout << "----------------------" << endl;
-    cout << "3 - Exit from program" << endl;
+    cout << "3 - Exit from program " << endl;
     cout << "----------------------" << endl;
-    cout << "4 - Exit and export" << endl;
+    cout << "4 - Exit and export   " << endl;
     cout << "----------------------" << endl;
 }
 
@@ -45,22 +40,26 @@ bool automat = false;
 int option = 0;
 int company_id = 0;
 bool git_exp = false;
+bool mark_hist = false;
+bool mark_maj = false;
 fstream LocalIDs;
 vector<int> cities;
 vector<int> products;
 
 /*
     Arguments:
-    -o - option (1 - Company; 2 - Markets);
-    -s - server (vera, olga, mary, lien, nika)
-    -c - id of company (number)
-    -g - geocodes of (city) markets **possible to use countries/regions names (aggregate all city markets of geo) / "World" to get all markets / "Local" to ger ids from file "cities.data"
+    -o - Option (1 - Company; 2 - Retail; 3 -  Services);
+    -r - server/Realm (vera, olga, mary, lien, nika)
+    -c - id of Company (number)
+    -g - Geocodes of (city) markets **possible to use countries/regions names (aggregate all city markets of geo) / "World" to get all markets / "Local" to ger ids from file "cities.data"
     (countries with 1 region using same name for country and region)
-    -p - codes of products **possible to use category names (aggregate all products from category) / "All" to get all products  / "Local" to ger ids from file "products.data"
-    -h - add history
-    -ms - add major shops
-    -e - export to repo
-    -l - explicitly use local files
+    -p - codes of Products **possible to use category names (aggregate all products from category) / "All" to get all products  / "Local" to ger ids from file "products.data"
+    -s - codes of Services
+    -h - add History
+    -ms - add Major Shops
+    -e - Export to repo
+    -l - explicitly use Local files
+    -
     */
 void launch_args(int args_num, char const *args_vals[])
 {
@@ -77,7 +76,7 @@ void launch_args(int args_num, char const *args_vals[])
         {
             option = stoi(args_vals[i + 1]);
         }
-        if (current_arg == "-s")
+        if (current_arg == "-r")
         {
             server = args_vals[i + 1];
             if(!server_check(server))
@@ -291,6 +290,16 @@ void launch_args(int args_num, char const *args_vals[])
             work_local = true;
             Yellog::Warn("Local mode turned on: no files will be downloaded!");
         }
+        if(current_arg == "-h")
+        {
+            mark_hist = true;
+            Yellog::Warn("Market history will be included");
+        }
+        if(current_arg == "-ms")
+        {
+            mark_maj = true;
+            Yellog::Warn("Market majors will be included");
+        }
         if (current_arg == "-e")
         {
             git_exp = true;
@@ -300,17 +309,32 @@ void launch_args(int args_num, char const *args_vals[])
 
 int main(int argc, char const *argv[])
 {
+    const auto tp_utc{chrono::time_point_cast<chrono::seconds>(chrono::system_clock::now())};
+    string timee (format("{:%Y-%m-%d_T%T}", tp_utc));
+    //cout << timee <<endl;
+
     fs::path log_place = "logs";
     fs::create_directories(log_place);
-    log_place = log_place / ((string)getenv("data") + ".log");
+    log_place = log_place / (timee + ".log");
     Yellog::EnableFileOutput(log_place.c_str());
     Yellog::SetTimestampFormat("%Y-%m-%d %t %T");
     Yellog::SetPriority(Yellog::DebugPriority);
 
+    launch_args(argc, argv);
+
     if ((getenv("vma_login") == nullptr) || (getenv("vma_password") == nullptr))
     {
-        Yellog::Critical("No login data...");
-        return -1;
+        Yellog::Warn("No login data provided!");
+        cout << "Input your Virtonomics login" << endl;
+        cin >> VmaLogin;
+        cout << "Input your Virtonomics password" << endl;
+        cin >> VmaPass;
+        //return -1;
+    }
+    else
+    {
+        VmaLogin = getenv("vma_login");
+        VmaPass = getenv("vma_password");
     }
 
 
@@ -319,7 +343,7 @@ int main(int argc, char const *argv[])
 
     //cout << "Arguments (" << argc << ") of prog is: " << endl;
 
-    launch_args(argc, argv);
+
 
 
     int result;
@@ -452,6 +476,28 @@ int main(int argc, char const *argv[])
                     LocalIDs.close();
                 }
             }
+            if(!automat)
+            {
+                cout << "Additional info:" << endl;
+                cout << "You need history of market? (input \"1\",\"(y)es\",\"(t)rue\" for including)" << endl;
+                string yeper[5] = {"y", "yes", "t", "true", "1"};
+                string buf;
+                cin >> buf;
+                for (string choice : yeper)
+                {
+                    if(buf == choice)
+                        mark_hist = true;
+                }
+                cout << boolalpha << mark_hist << endl;
+                cout << "You need major shops of market? (input \"1\",\"(y)es\",\"(t)rue\" for including)" << endl;
+                cin >> buf;
+                for (string choice : yeper)
+                {
+                    if(buf == choice)
+                        mark_maj = true;
+                }
+                cout << boolalpha << mark_maj << endl;
+            }
 
             cout << "Server is " << server << ";" << endl;
             cout << "City ids are:" << endl;
@@ -466,7 +512,7 @@ int main(int argc, char const *argv[])
                 cout << prods << "; ";
             }
             cout << endl;
-            result = MarketsParse(server, cities, products);
+            result = MarketsParse(server, cities, products, mark_hist, mark_maj);
             if (result)
             {
                 cout << "Error happened during markets parsing..." << result << endl;

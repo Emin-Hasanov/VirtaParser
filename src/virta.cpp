@@ -1,5 +1,6 @@
 #include "virta.h"
 
+int wait_time = 1;
 struct curl_slist *log_info;
 
 fs::path exp_data = "data";
@@ -9,6 +10,9 @@ string server;
 string url_base = "https://virtonomics.com/api/" + server + "/main/";
 string url = url_base;
 bool work_local = false;
+
+string VmaLogin;
+string VmaPass;
 
 //typedef enum  {READ, WRITE, REWRITE, RW} FileOpType;
 
@@ -32,15 +36,23 @@ size_t write_callback_str(char *ptr, size_t size, size_t nmemb, void *userdata)
 
 string valnut (json js, string key, string def)
 {
-    auto temp = js.at(key);
-    //cout << temp << endl;
-    json emp;
-    if (temp == emp)
-        return def;
-    else
+    try
     {
-        return js.value(key, def);
+        auto temp = js.at(key);
+        //cout << temp << endl;
+        json emp;
+        if (temp == emp)
+            return def;
+        else
+        {
+            return js.value(key, def);
+        }
     }
+    catch(json::out_of_range)
+    {
+        return def;
+    }
+
 }
 
 bool try_open_file(fstream *file, string filename, FileOpType type, string err_message) //type: read, write, rewrite; return 1 if opened success, 0 if failed
@@ -129,7 +141,7 @@ bool check_access(string serv, int company)
     cout << "URL is " << str << endl;
 
     string compdata;
-    if(connect<string>(str, true, &compdata))
+    if(connect(str, true, &compdata))
     {
         cout << "Connection to check access failed!" << endl;
         return true;
@@ -209,7 +221,7 @@ void locality()
         Yellog::Debug("Initializing connection...");
         url = "https://virtonomics.com/olga/main/user/login";
         Yellog::Debug("URL is %s", url.c_str());
-        string params = "userData[login]=" + (string)getenv("vma_login") + "&userData[password]=" + (string)getenv("vma_password");
+        string params = "userData[login]=" + VmaLogin + "&userData[password]=" + VmaPass;
 
         if (connect(url, false, &file, params))
         {

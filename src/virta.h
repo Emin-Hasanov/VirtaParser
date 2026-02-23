@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <thread>
 #include <chrono>
+#include <format>
 
 
 #include "3pl/json.hpp"
@@ -17,6 +18,7 @@ using namespace std;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
+extern int wait_time;
 extern struct curl_slist *log_info;
 extern fs::path exp_data;
 extern fs::path ext_data;
@@ -27,11 +29,14 @@ extern string url_base;
 extern string url;
 extern bool work_local;
 
+extern string VmaLogin;
+extern string VmaPass;
+
 typedef enum  {READ, WRITE, REWRITE, RW} FileOpType;
 
-extern size_t write_callback_file(char *ptr, size_t size, size_t nmemb, void *userdata);
+size_t write_callback_file(char *ptr, size_t size, size_t nmemb, void *userdata);
 
-extern size_t write_callback_str(char *ptr, size_t size, size_t nmemb, void *userdata);
+size_t write_callback_str(char *ptr, size_t size, size_t nmemb, void *userdata);
 
 
 template <typename T>
@@ -110,7 +115,8 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
         /* always cleanup */
         curl_easy_cleanup(curl);
         //
-        this_thread::sleep_for(10ms);
+        this_thread::sleep_for(chrono::milliseconds(wait_time));
+        Yellog::Debug("%s written to %x", link.c_str(), &WriteTo);
     }
 
     return 0;

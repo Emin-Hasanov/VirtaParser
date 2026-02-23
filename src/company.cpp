@@ -1,136 +1,7 @@
 #include "company.h"
+#include "unit.h"
 
-#define def(a,b,c) a b = c
-#define setint(a) void set##a(string value) { this->a = stoi(value);}
-#define setflt(a) void set##a(string value) { this->a = stof(value);}
-#define setstr(a) void set##a(string value) { this->a = value;}
-#define get(a,b) a get##b() {return this->b;}
-#define ref(a) this->a
-#define refout(a) << this->a << ";"
-//#define jspar(a,b,c,d) set##a(b.value(c,d))
-#define jsparn(a,b,c,d) set##a(valnut(b,c,d))
-
-class Unit
-{
-    int id = 0;
-    string name = "";
-    int regOfficeID = 0;
-    int cityID = 0;
-    string kind = "";
-    int type = 0;
-    int unitSize = 0;
-    int tech = 0;
-    def(int, employees, 0);
-    def(float, salary, 0.0);
-    def(float, qualification, 0.0);
-    def(int, equip, 0);
-    def(float, equip_qual, 0.0);
-    def(float, wear, 0.0);
-    def(bool, holidays,false);
-
-public:
-
-    void setID(string value)
-    {
-        this->id = stoi(value);
-    }
-    void setName(string value)
-    {
-        this->name = value;
-    }
-    void setRegID(string value)
-    {
-        this->regOfficeID = stoi(value);
-    }
-    void setCityID(string value)
-    {
-        this->cityID = stoi(value);
-    }
-    void setKind(string value)
-    {
-        this->kind = value;
-    }
-    void setType(string value)
-    {
-        this->type = stoi(value);
-    }
-    void setSize(string value)
-    {
-        this->unitSize = stoi(value);
-    }
-    void setTech(string value)
-    {
-        this->tech = stoi(value);
-    }
-    setint(employees)
-    setflt(salary)
-    setflt(qualification)
-    setint(equip)
-    setflt(equip_qual)
-    setflt(wear)
-
-    int getID()
-    {
-        return this->id;
-    }
-    string getName()
-    {
-        return this->name;
-    }
-    int getRegID()
-    {
-        return this->regOfficeID;
-    }
-    int getCityID()
-    {
-        return this->cityID;
-    }
-    string getKind()
-    {
-        return this->kind;
-    }
-    int getType()
-    {
-        return this->type;
-    }
-    int getSize()
-    {
-        return this->unitSize;
-    }
-    int getTech()
-    {
-        return this->tech;
-    }
-    get(int, employees)
-    get(float, salary)
-    get(float, qualification)
-    get(int, equip)
-    get(float, equip_qual)
-    get(float, wear)
-
-    void printFields(fstream *file = nullptr)
-    {
-        auto cout_buff = cout.rdbuf();
-        if (file)
-        {
-            cout.rdbuf(file->rdbuf());
-        }
-        cout << "id; name; office; city; kind; type; size; technology_level; employees; salary; qualification; equip; equip_qual; wear;" << endl;
-        cout.rdbuf(cout_buff);
-    }
-    void printValues(fstream *file = nullptr)
-    {
-        auto cout_buff = cout.rdbuf();
-        if (file)
-        {
-            cout.rdbuf(file->rdbuf());
-        }
-        cout << this->id << ";" << this->name << ";" << this->regOfficeID << ";" << this->cityID << ";" << this->kind << ";";
-        cout << this->type << ";" << this->unitSize << ";" << this->tech << ";" refout(employees) refout(salary) refout(qualification) refout(equip);
-        cout refout(equip_qual) refout(wear) << endl;
-        cout.rdbuf(cout_buff);
-    }
-};
+#define setjsv(prop,json,key,default) set##prop(valnut(json,key,default))
 
 int process_unit(Unit *current, fs::path filepath)
 {
@@ -162,18 +33,20 @@ int process_unit(Unit *current, fs::path filepath)
             //cout << data_res.dump(2) << endl;
         }
 
-        current->setName(js_buf.value("name", "UNKNOWN"));
-        current->setRegID(js_buf.value("office_id", "0"));
-        current->setCityID(js_buf.value("city_id", "0"));
-        current->setType(js_buf.value("unit_type_produce_id", "0"));
-        current->setSize(js_buf.value("size", "0"));
-        current->setTech(js_buf.value("technology_level", "0"));
-        current->jsparn(employees, js_buf, "employee_count", "0");
-        current->jsparn(salary, js_buf, "employee_salary", "0");
-        current->jsparn(qualification, js_buf, "employee_level", "0");
-        current->jsparn(equip, js_buf, "equipment_count", "0");
-        current->jsparn(equip_qual, js_buf, "equipment_quality", "0");
-        current->jsparn(wear, js_buf, "equipment_wear", "0");
+        current->setjsv(Name, js_buf, "name", "UNKNOWN");
+        current->setjsv(RegOfficeID, js_buf, "office_id", "0");
+        current->setjsv(CityID, js_buf, "city_id", "0");
+        current->setjsv(Type, js_buf, "unit_type_produce_id", "0");
+        current->setjsv(UnitSize, js_buf, "size", "0");
+        current->setjsv(Tech,js_buf,"technology_level", "0");
+        current->setjsv(Employees, js_buf, "employee_count", "0");
+        current->setjsv(Salary, js_buf, "employee_salary", "0");
+        current->setjsv(Qualification, js_buf, "employee_level", "0");
+        current->setjsv(Equip, js_buf, "equipment_count", "0");
+        current->setjsv(EquipQual, js_buf, "equipment_quality", "0");
+        current->setjsv(Wear, js_buf, "equipment_wear", "0");
+        current->setjsv(Holidays,js_buf,"on_holiday","t");
+        current->setjsv(Productivity, js_buf, "productivity", "0.0");
 
         //employee_count; employee_salary; employee_level; equipment_count	equipment_quality	equipment_wear
 
@@ -277,6 +150,7 @@ int CompanyParse(string serv, int company_id)
     vector<string> unit_links = {"unit/summary?id=", "unit/artefact/attached?id=", "unit/extension/current?id=", "unit/supply/summary?id="};
     for (size_t i = 0; i < num_units; i++)
     {
+        auto start = std::chrono::steady_clock::now();
         string curr_id = id_list[i];
         units[i].setID(curr_id);
         Yellog::Info("Unit %s (%d/%d)", curr_id.c_str(), i + 1, num_units);
@@ -343,7 +217,15 @@ int CompanyParse(string serv, int company_id)
                 return ProcStatus;
             }
         }
+        auto stop = std::chrono::steady_clock::now();
 
+        auto durationOne = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        auto durationApprox = durationOne.count()*(num_units-1);
+        Yellog::Debug("Unit %s processed in %d  microseconds", curr_id.c_str(), durationOne.count());
+        if(!i)
+        {
+            Yellog::Info("Approximate time to execute: %f  seconds", durationApprox/1000000.0);//(chrono::duration_cast<chrono::seconds>(durationApprox)).count());
+        }
         //cout << "Kind is " << kind << endl;
 
     }

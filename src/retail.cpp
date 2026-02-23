@@ -7,7 +7,7 @@ bool MarketsToday(fstream *today_file, string city, string product)
 {
     url = market_link + "metrics?lang=en&geo=0/0/" + city + "&product_id=" + product;
     cout << "Today market..." << "\t";
-    //cout << "URL: " << url << endl;
+    Yellog::Debug("URL (today): %s", url.c_str());
     string tmp;
     if(connect(url, true, &tmp) )
     {
@@ -35,7 +35,7 @@ bool MarketsHistory(fs::path pathway, string city, string product)
 {
     url = market_link + "history?geo=0/0/" + city + "&product_id=" + product;
     cout << "History of market..." << "\t";
-    //cout << "URL (history): " << url << endl;
+    Yellog::Debug("URL (history): %s", url.c_str());
     string tmp;
     if(connect(url, true, &tmp))
     {
@@ -99,7 +99,7 @@ bool MarketsMajorShops(fs::path pathway, string city, string product)
 {
     url = market_link + "units?geo=0/0/" + city + "&product_id=" + product;
     cout << "Major Shops..." << "\t";
-    //cout << "URL (shops): " << url << endl;
+    Yellog::Debug("URL (majors): %s", url.c_str());
     /*string tmp;
     if(connect(url, true, &tmp))
     {
@@ -113,7 +113,7 @@ bool MarketsMajorShops(fs::path pathway, string city, string product)
     return true;
 }
 
-int MarketsParse(string realm, vector<int> cities, vector<int> products)
+int MarketsParse(string realm, vector<int> cities, vector<int> products, bool HistoryNeeded, bool MajorsNeeded)
 {
     locality();
 
@@ -122,14 +122,22 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products)
     fs::path markets = exp_data / "markets";
     fs::create_directories(markets);
 
-    vector<string> fields;
-    fill_vs(getenv("fields_mark"), &fields);
-
+    //vector<string> fields;
+    //fill_vs(getenv("fields_mark"), &fields);
+    Yellog::Info("Parsing retail markets...");
 
     int num_cities = cities.size(), num_prods = products.size();
+    int num_downloads = 1;
+    if (HistoryNeeded)
+        num_downloads++;
+    if(MajorsNeeded)
+        num_downloads++;
+    float estimates = num_cities * num_prods * num_downloads * wait_time / 1000.0;
+    //cout  << "www " <<wait_time << " r " << 1000ms << " i " << (1000ms/wait_time) <<endl;
+    Yellog::Info("Estimated time for executing is %f", estimates);
     for (int i = 0; i < num_cities; i++)
     {
-        cout << "City " << cities[i] << " (" << i + 1 << " / " << num_cities << ")" << endl;
+        Yellog::Info("City %d (%d/%d)", cities[i], i + 1, num_cities);
         fs::path location = markets / ("markets-" + server + + "-" + to_string (cities[i]) + ".csv");
         fs::path ext_city = ext_base / to_string (cities[i]);
         fs::create_directories(ext_city);
@@ -138,16 +146,19 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products)
 
         for (int j = 0; j < num_prods; j++)
         {
-            cout << "Product " << products[j] << " (" << j + 1 << " / " << num_prods << ")" << endl;
+            Yellog::Info("Product %d (%d/%d)", products[j], j + 1, num_prods);
             fs::path ext_prod = ext_city / to_string (products[j]);
             fs::create_directories(ext_prod);
             MarketsToday(&file, to_string(cities[i]), to_string(products[j]));
-            MarketsHistory(ext_city, to_string(cities[i]), to_string(products[j]));
-            MarketsMajorShops(ext_city, to_string(cities[i]), to_string(products[j]));
+            if (HistoryNeeded)
+                MarketsHistory(ext_city, to_string(cities[i]), to_string(products[j]));
+            if(MajorsNeeded)
+                MarketsMajorShops(ext_city, to_string(cities[i]), to_string(products[j]));
             cout << endl;
         }
         file.close();
     }
+    Yellog::Info("Parsing retail markets done!");
 
 // file_struc: prod_id, avg_price, local_market_size, (Col2*Col3), index_max
 

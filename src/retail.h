@@ -2,6 +2,6 @@
 #define _RETAIL_H_
 
 #include "virta.h"
-extern int MarketsParse(string, vector<int>, vector<int>);
+extern int MarketsParse(string, vector<int>, vector<int>, bool, bool);
 
 #endif //_RETAIL_H_
