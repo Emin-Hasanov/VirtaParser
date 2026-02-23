@@ -16,11 +16,11 @@ find ./src -type f -exec sha256sum {} \; > sources.sha256
 #sha256sum {./src/menu.cpp ./src/json.hpp} > sources.sha256
 
 echo "Styling source..."
-astyle -A1 --pad-oper -n ./src/menu.cpp ./src/virta.cpp ./src/virta.h ./src/retail.cpp ./src/retail.h ./src/company.cpp ./src/company.h
+astyle -A1 --pad-oper -n ./src/menu.cpp ./src/virta.cpp ./src/virta.h ./src/retail.cpp ./src/retail.h ./src/company.cpp ./src/company.h ./src/unit.cpp ./src/unit.h
 
 echo "Compiling..."
 #g++ -c -I./curlplus ./src/VC.cpp
-g++  ./src/retail.cpp ./src/company.cpp ./src/menu.cpp ./src/virta.cpp -o VirtaParse -lcurl
+g++  ./src/retail.cpp ./src/company.cpp ./src/menu.cpp ./src/virta.cpp ./src/unit.cpp -o VirtaParse -lcurl
 
 ReturnComp=$?
 
