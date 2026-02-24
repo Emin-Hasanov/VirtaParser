@@ -115,8 +115,8 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
         /* always cleanup */
         curl_easy_cleanup(curl);
         //
-        this_thread::sleep_for(chrono::milliseconds(wait_time));
-        Yellog::Debug("%s written to %x", link.c_str(), &WriteTo);
+        //this_thread::sleep_for(chrono::milliseconds(wait_time));
+        //Yellog::Debug("%s written to %x", link.c_str(), &WriteTo);
     }
 
     return 0;
