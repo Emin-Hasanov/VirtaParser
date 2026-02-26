@@ -43,7 +43,8 @@ class Unit
     defvar(string, ExtName, "");
     defvar(float, ExtEstVal, 0.0);
 
-
+    vector<tuple<int, float, int, float>> ProdNeedVec;
+    vector<tuple<int, float, int, float>> ProdVec;
 
 public:
     defset(ID);
@@ -97,10 +98,14 @@ public:
     defget(float, ExtEstVal);
 
     static vector<int> ProdNeedIDs;
-    vector<tuple<int, float, int, float>> ProdNeedVec;
+    static vector<int> ProdIDs;
 
     void printFields(fstream *file = nullptr);
     void printValues(fstream *file = nullptr);
+
+    void addPNV(int ID, float Qual, int Req, float Prime);
+    void addPV(int ID, float Qual, int Qnty, float Prime);
+    size_t sizePNV();
 
 };
 

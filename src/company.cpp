@@ -1,10 +1,7 @@
 #include "company.h"
 #include "unit.h"
 
-//#define setjso(prop) set##prop ()
 #define setjsv(prop,json,key,default) set##prop(valnut(json,key,default))
-
-
 
 int process_unit(Unit *current, fs::path filepath)
 {
@@ -90,8 +87,6 @@ int process_unit(Unit *current, fs::path filepath)
     }
     if(filepath.stem() == "supply")
     {
-        //Yellog::Debug("Sup info is being processed...");
-        cout << "Kind is " << current->getKind() << endl;
         if((current->getKind() == "workshop") || (current->getKind() == "animalfarm") || (current->getKind() == "mill") || (current->getKind() == "power"))
         {
             for (auto& el : js_buf.items())
@@ -100,12 +95,12 @@ int process_unit(Unit *current, fs::path filepath)
                 //cout << SupElem.dump(4)<<endl;
                 if(SupElem == 406)
                 {
-                    cout << "No supplies needed!" << endl;
+                    //cout << "No supplies needed!" << endl;
                     break;
                 }
                 if(SupElem == 401)
                 {
-                    cout << "Access limited!" << endl;
+                    //cout << "Access limited!" << endl;
                     break;
                 }
                 int ProdID = stoi(SupElem.value("product_id", "0"));
@@ -118,12 +113,74 @@ int process_unit(Unit *current, fs::path filepath)
                 {
                     Unit::ProdNeedIDs.push_back(ProdID);
                 }
-                current->ProdNeedVec.push_back(make_tuple(ProdID, ProdQual, ProdReq, ProdPrime));
-                cout << ProdID << "; " << ProdQual << "; " << ProdReq << "; " << ProdPrime << endl;
+                current->addPNV(ProdID, ProdQual, ProdReq, ProdPrime);
+                //cout << ProdID << "; " << ProdQual << "; " << ProdReq << "; " << ProdPrime << endl;
             }
         }
-        cout << "Size of ProdNeedVec is " << current->ProdNeedVec.size() << endl;
+        /*if(current->getKind() == "shop" )
+        {
+            for (auto& el : js_buf.items())
+            {
+                json SupElem = el.value();
+                //cout << SupElem.dump(4)<<endl;
+                if(SupElem == 401)
+                {
+                    cout << "Access limited!" << endl;
+                    break;
+                }
+                int ProdID = stoi(SupElem.value("product_id", "0"));
+                float ProdQual = stof(valnut(SupElem, "quality", "0"));
+                int ProdReq = stoi(valnut(SupElem, "required", "0"));
+                float ProdPrime = stof(valnut(SupElem, "prime_cost", "0"));
+                if(ProdReq)
+                {
+                    current->addPNV(ProdID,ProdQual,ProdReq,ProdPrime);
+                    cout << ProdID << "; " << ProdQual << "; " << ProdReq << "; " << ProdPrime << endl;
+                }
+            }
+        }*/
+        //cout << "Size of ProdNeedVec is " << current->sizePNV() << endl;
         //cout << js_buf.dump(4) << endl;
+    }
+    if(filepath.stem() == "product")
+    {
+        Yellog::Debug("Prod info is being processed...");
+        cout << "Kind is " << current->getKind() << endl;
+        if((current->getKind() == "workshop") || (current->getKind() == "animalfarm") || (current->getKind() == "mill") || (current->getKind() == "farm") || (current->getKind() == "orchard") || (current->getKind() == "sawmill"))
+        {
+            for (auto& el : js_buf.items())
+            {
+                json SupElem = el.value();
+                //cout << SupElem.dump(4)<<endl;
+                if(SupElem == 406)
+                {
+                    //cout << "No supplies needed!" << endl;
+                    break;
+                }
+                if(SupElem == 401)
+                {
+                    //cout << "Access limited!" << endl;
+                    break;
+                }
+                int ProdID = stoi(SupElem.value("product_id", "0"));
+                float ProdQual = stof(valnut(SupElem, "produced_quality", "0"));
+                int ProdQnty = stoi(valnut(SupElem, "produced_quantity", "0"));
+                float ProdPrime = stof(valnut(SupElem, "produced_prime_cost", "0"));
+
+                auto it = std::find(Unit::ProdIDs.begin(), Unit::ProdIDs.end(), ProdID);
+                if (it == Unit::ProdIDs.end())
+                {
+                    Unit::ProdIDs.push_back(ProdID);
+                }
+                Yellog::Debug("%d; %f; %d; %f;", ProdID, ProdQual, ProdQnty, ProdPrime);
+                if(ProdQnty)
+                {
+                    current->addPV(ProdID, ProdQual, ProdQnty, ProdPrime);
+
+                }
+            }
+
+        }
     }
     return 0;
 }
@@ -217,8 +274,8 @@ int CompanyParse(string serv, int company_id)
     cout << "Unit_IDs are cleared!" << endl;
 
     Unit units[num_units];
-    vector<string> unit_files = {"summary.json", "artefact.json", "extension.json", "supply.json"};
-    vector<string> unit_links = {"unit/summary?id=", "unit/artefact/attached?id=", "unit/extension/current?id=", "unit/supply/summary?id="};
+    vector<string> unit_files = {"summary.json", "artefact.json", "extension.json", "supply.json", "product.json"};
+    vector<string> unit_links = {"unit/summary?id=", "unit/artefact/attached?id=", "unit/extension/current?id=", "unit/supply/summary?id=", "unit/produce/summary?id="};
     for (size_t i = 0; i < num_units; i++)
     {
         auto start = std::chrono::steady_clock::now();
@@ -301,7 +358,11 @@ int CompanyParse(string serv, int company_id)
 
     }
 
-    cout << "Size of Vector: " << Unit::ProdNeedIDs.size() << endl;
+    cout << "Size of Vector(supplies): " << Unit::ProdNeedIDs.size() << endl;
+    sort(Unit::ProdNeedIDs.begin(), Unit::ProdNeedIDs.end());
+    cout << "Size of Vector(products): " << Unit::ProdIDs.size() << endl;
+    sort(Unit::ProdIDs.begin(), Unit::ProdIDs.end());
+
 
 
     Yellog::Info("Making summary file about company...");
