@@ -188,7 +188,7 @@ int process_unit(Unit *current, fs::path filepath)
 
 int CompanyParse(string serv, int company_id)
 {
-    locality();
+    locality(serv);
 
     json data_units, data_ext;
     //Extended data about company and units

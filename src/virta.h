@@ -2,17 +2,16 @@
 #define _VIRTA_H_
 
 #include <iostream>
-#include <string>
-#include <curl/curl.h>
 #include <fstream>
-#include <filesystem>
-#include <thread>
-#include <chrono>
+#include <filesystem>           //Correct path to files and directory management
+#include <curl/curl.h>          //Get needed info from API servers
+#include <thread>               //Multi-threading
+#include <string>
 #include <format>
+#include <chrono>
 
-
-#include "3pl/json.hpp"
-#include "3pl/yelloger.h"
+#include "3pl/json.hpp"         //JSON Tools
+#include "3pl/yelloger.h"       //Logger
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -136,6 +135,6 @@ extern void fill_vs(string str, vector<string> *v);
 
 extern bool DownloadParseFormat(string link, json* json_entry, fstream *target, string pathway);
 
-extern void locality();
+extern void locality(string);
 
 #endif //_VIRTA_H_

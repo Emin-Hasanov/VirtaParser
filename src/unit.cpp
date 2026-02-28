@@ -82,12 +82,12 @@ void Unit::printFields(fstream *file)
     {
         cout << (to_string(ProdID) + "_Made") << "; ";
     }
-    cout <<"TotalMade; ";
+    cout << "TotalMade; ";
     for (int ProdID : ProdNeedIDs)
     {
         cout << (to_string(ProdID) + "_Cost") << "; ";
     }
-    cout <<"TotalRawCost; ";
+    cout << "TotalRawCost; ";
     cout << endl;
     cout.rdbuf(cout_buff);
 }
@@ -138,13 +138,13 @@ void Unit::printValues(fstream *file)
         else
         {
             cout << get<2>(*Prod);
-            totals+= get<2>(*Prod);
+            totals += get<2>(*Prod);
         }
         cout << ";";
         //cout <<
     }
     cout << totals << ";";
-    totals=0;
+    totals = 0;
     for (int ProdID : ProdNeedIDs)
     {
         auto Prod = find_if(ProdNeedVec.begin(), ProdNeedVec.end(), [ProdID]
@@ -159,7 +159,7 @@ void Unit::printValues(fstream *file)
         else
         {
             cout << get<3>(*Prod)*get<2>(*Prod);
-            totals+= get<3>(*Prod)*get<2>(*Prod);
+            totals += get<3>(*Prod) * get<2>(*Prod);
         }
         cout << ";";
         //cout <<

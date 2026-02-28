@@ -63,6 +63,7 @@ vector<int> products;
     */
 void launch_args(int args_num, char const *args_vals[])
 {
+    //cout << "there are " << thread::hardware_concurrency() << " available threads..." << endl;
     if (args_num > 1)
     {
         Yellog::Info("Working in (semi)-automatic mode...");

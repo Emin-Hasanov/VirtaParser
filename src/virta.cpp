@@ -208,7 +208,7 @@ bool DownloadParseFormat(string link, json* json_entry, fstream *target, string 
     return true;
 }
 
-void locality()
+void locality(string server)
 {
     if(!work_local)
     {
@@ -219,7 +219,7 @@ void locality()
             //return 1;
         }
         Yellog::Debug("Initializing connection...");
-        url = "https://virtonomics.com/olga/main/user/login";
+        url = "https://virtonomics.com/" + server + "/main/user/login";
         Yellog::Debug("URL is %s", url.c_str());
         string params = "userData[login]=" + VmaLogin + "&userData[password]=" + VmaPass;
 
