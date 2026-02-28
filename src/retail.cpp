@@ -4,41 +4,12 @@
 mutex file_lock;
 string market_link;
 
-bool MarketsToday(fstream *today_file, string city, string product)
-{
-    lock_guard<mutex> lock(file_lock);
-    url = market_link + "metrics?lang=en&geo=0/0/" + city + "&product_id=" + product;
-    cout << "Today market..." << "\t";
-    Yellog::Debug("URL (today): %s", url.c_str());
-    string tmp;
-    if(connect(url, true, &tmp) )
-    {
-        cerr << "Error! Connection failed" << endl;
-        return false;
-    }
-    try
-    {
-        json data_prod = json::parse(tmp);
-        //cout << data_prod.dump(4);
-        (*today_file) << product << ";" << data_prod.value("avg_price", "0") << ";" << data_prod.value("local_market_size", "0") << ";";
-        //cout << "part 1..." ;
-        (*today_file) << stoi(data_prod.value("avg_price", "0"))*stoi(data_prod.value("local_market_size", "0")) << ";" << data_prod.value("index_min", "0") << endl;
-        //cout << "part 2..." ;
-    }
-    catch(...)
-    {
-        cerr << "Error! " << endl;
-        return false;
-    }
-    return true;
-}
-
 bool MarketsHistory(fs::path pathway, string city, string product)
 {
     lock_guard<mutex> lock(file_lock);
     url = market_link + "history?geo=0/0/" + city + "&product_id=" + product;
     //cout << "History of market..." << "\t";
-    //Yellog::Debug("URL (history): %s", url.c_str());
+    Yellog::Debug("URL (history): %s", url.c_str());
     string tmp;
     if(connect(url, true, &tmp))
     {
@@ -101,7 +72,7 @@ bool MarketsMajorShops(fs::path pathway, string city, string product)
 {
     lock_guard<mutex> lock(file_lock);
     url = market_link + "units?geo=0/0/" + city + "&product_id=" + product;
-    //Yellog::Debug("URL (majors): %s", url.c_str());
+    Yellog::Debug("URL (majors): %s", url.c_str());
     fs::path shops_path = pathway / product / "majors.json";
     fstream shops_file;
     json data_shops;
@@ -138,7 +109,7 @@ bool LookLatest(vector <tuple<int, float, int, float, int>> &info, fs::path path
         lock_guard<mutex> lock(file_lock);
         url = market_link + "metrics?lang=en&geo=0/0/" + pathway.parent_path().stem().c_str() + "&product_id=" + pathway.stem().c_str();
         cout << "Today market..." << "\t";
-        //Yellog::Debug("URL (today): %s", url.c_str());
+        Yellog::Debug("URL (today): %s", url.c_str());
         string tmp;
         if(connect(url, true, &tmp) )
         {
@@ -180,20 +151,17 @@ void cityCheck(int start_city, vector<int> cities, vector<int> products, bool Hi
     for (int i = start_city - 1; i < num_cities; i = i + threadsMax)
     {
         vector <tuple<int, float, int, float, int>> today_info;
-        //Yellog::Info("Thread %d\tCity %d (%d/%d)", start_city, cities[i], i + 1, num_cities);
+        Yellog::Info("Thread %d\tCity %d (%d/%d)", start_city, cities[i], i + 1, num_cities);
         fs::path ext_city = ext_base / to_string (cities[i]);
         if(HistoryNeeded || MajorsNeeded)
             fs::create_directories(ext_city);
-        //try_open_file(&file, location, WRITE, "Error! File for city not opened");
-        //file << "product_id;avg_price;local_market_size;total_market;index_min" << endl;
 
         for (int j = 0; j < num_prods; j++)
         {
-            //Yellog::Info("Thread %d\tProduct %d (%d/%d)", start_city, products[j], j + 1, num_prods);
+            Yellog::Info("Thread %d\tProduct %d (%d/%d)", start_city, products[j], j + 1, num_prods);
             fs::path ext_prod = ext_city / to_string (products[j]);
             if(HistoryNeeded || MajorsNeeded)
                 fs::create_directories(ext_prod);
-            //MarketsToday(&file, to_string(cities[i]), to_string(products[j]));
 
             if (HistoryNeeded)
             {
@@ -204,9 +172,8 @@ void cityCheck(int start_city, vector<int> cities, vector<int> products, bool Hi
                 MarketsMajorShops(ext_city, to_string(cities[i]), to_string(products[j]));
             //cout << endl;
         }
-        //semaphore.acquire();
         file_lock.lock();
-        //Yellog::Info("Thread %d\t Forming today file for %d", start_city, cities[i]);
+        Yellog::Info("Thread %d\t Forming today file for %d", start_city, cities[i]);
         fs::path location = markets / ("markets-" + server + + "-" + to_string (cities[i]) + ".csv");
         try_open_file(&file, location, WRITE, "Error! File for city not opened");
         file << "product_id;avg_price;local_market_size;total_market;index_min" << endl;
@@ -218,7 +185,6 @@ void cityCheck(int start_city, vector<int> cities, vector<int> products, bool Hi
             file << id << ";" << avg_price << ";" << total_amount << ";" << market << ";" << index << endl;
         }
         file.close();
-        //semaphore.release();
         file_lock.unlock();
 
     }
@@ -234,12 +200,9 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     market_link  = url_base + "marketing/report/retail/";
     ext_base = ext_data / "markets";
     markets = exp_data / "markets";
-
     fs::create_directories(markets);
 
-    //vector<string> fields;
-    //fill_vs(getenv("fields_mark"), &fields);
-    //Yellog::Info("Parsing retail markets...");
+    Yellog::Info("Parsing retail markets...");
     threadsMax = thread::hardware_concurrency();
     //cout << "th " << threadsMax <<endl;
     if (threadsMax < 4)
@@ -275,7 +238,7 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
         }
     }
 
-    //Yellog::Info("Parsing retail markets done!");
+    Yellog::Info("Parsing retail markets done!");
 
 // file_struc: prod_id, avg_price, local_market_size, (Col2*Col3), index_max
 
