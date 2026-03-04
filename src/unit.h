@@ -14,8 +14,6 @@ members:
 ID, Name, RegOfficeID, CityID, Kind;
 */
 
-//#define UnitP16 Productivity
-
 class Unit
 {
     defvar(int, ID, 0);
@@ -43,8 +41,10 @@ class Unit
     defvar(string, ExtName, "");
     defvar(float, ExtEstVal, 0.0);
 
-    vector<tuple<int, float, int, float>> ProdNeedVec;
+    vector<tuple<int, float, int, float>> ProdNeedVec;  //ID;Price;Amount;PrimeCost
     vector<tuple<int, float, int, float>> ProdVec;
+    vector<tuple<int, int>> Artefacts;  // ArtefactID; RecurringCosts
+    double Account[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; // Salary; Management; Energy; Artefact; Rent; Amortization; Losses; Franchise; Generals
 
 public:
     defset(ID);
@@ -106,6 +106,8 @@ public:
     void addPNV(int ID, float Qual, int Req, float Prime);
     void addPV(int ID, float Qual, int Qnty, float Prime);
     size_t sizePNV();
+
+    void setAccount(json entry, string kind_js);
 
 };
 

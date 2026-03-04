@@ -20,19 +20,6 @@ int process_unit(Unit *current, fs::path filepath)
     buf.close();
     if(filepath.stem() == "summary")
     {
-        json data_res;
-        if (current->getKind() == "sawmill" || current->getKind() == "farm" || current->getKind() == "orchard")
-        {
-            data_res = js_buf.at("city_culture");
-            current->setjsv(Fertility, data_res, "fertility", "0");
-            current->setjsv(CultQuality, data_res, "quality", "0");
-        }
-        if (current->getKind() == "mine")
-        {
-            data_res = js_buf.at("city_deposit");
-            current->setjsv(Hardness, data_res, "extract_cost", "0");
-            current->setjsv(CultQuality, data_res, "quality", "0");
-        }
         current->setjsv(Name, js_buf, "name", "UNKNOWN");
         current->setjsv(RegOfficeID, js_buf, "office_id", "0");
         current->setjsv(CityID, js_buf, "city_id", "0");
@@ -47,6 +34,20 @@ int process_unit(Unit *current, fs::path filepath)
         current->setjsv(Wear, js_buf, "equipment_wear", "0");
         current->setjsv(Holidays, js_buf, "on_holiday", "t");
         current->setjsv(Productivity, js_buf, "productivity", "0.0");
+        json data_res;
+        if (current->getKind() == "sawmill" || current->getKind() == "farm" || current->getKind() == "orchard")
+        {
+            data_res = js_buf.at("city_culture");
+            current->setjsv(Fertility, data_res, "fertility", "0");
+            current->setjsv(CultQuality, data_res, "quality", "0");
+        }
+        if (current->getKind() == "mine")
+        {
+            data_res = js_buf.at("city_deposit");
+            current->setjsv(Hardness, data_res, "extract_cost", "0");
+            current->setjsv(CultQuality, data_res, "quality", "0");
+        }
+        return 0;
     }
     if(filepath.stem() == "artefact")
     {
@@ -56,6 +57,8 @@ int process_unit(Unit *current, fs::path filepath)
             if (slot.size() != 0)
             {
                 int art_id = stoi( slot.value("id", "0"));
+                //int art_cost = stoi( slot.value("cost_per_turn", "0"));
+                //current->Account[3] += art_cost;
                 switch (art_id)
                 {
                 case 300804:
@@ -74,6 +77,7 @@ int process_unit(Unit *current, fs::path filepath)
                 }
             }
         }
+        return 0;
     }
     if(filepath.stem() == "extension")
     {
@@ -84,6 +88,7 @@ int process_unit(Unit *current, fs::path filepath)
             current->setExtEstVal(to_string(js_buf.value("estimated_value", 0.0)));
             current->setjsv(ExtName, js_buf, "name", "UNKNOWN");
         }
+        return 0;
     }
     if(filepath.stem() == "supply")
     {
@@ -141,11 +146,11 @@ int process_unit(Unit *current, fs::path filepath)
         }*/
         //cout << "Size of ProdNeedVec is " << current->sizePNV() << endl;
         //cout << js_buf.dump(4) << endl;
+        return 0;
     }
     if(filepath.stem() == "product")
     {
-        Yellog::Debug("Prod info is being processed...");
-        cout << "Kind is " << current->getKind() << endl;
+        //cout << "Kind is " << current->getKind() << endl;
         if((current->getKind() == "workshop") || (current->getKind() == "animalfarm") || (current->getKind() == "mill") || (current->getKind() == "farm") || (current->getKind() == "orchard") || (current->getKind() == "sawmill"))
         {
             for (auto& el : js_buf.items())
@@ -172,15 +177,33 @@ int process_unit(Unit *current, fs::path filepath)
                 {
                     Unit::ProdIDs.push_back(ProdID);
                 }
-                Yellog::Debug("%d; %f; %d; %f;", ProdID, ProdQual, ProdQnty, ProdPrime);
+                //Yellog::Debug("%d; %f; %d; %f;", ProdID, ProdQual, ProdQnty, ProdPrime);
                 if(ProdQnty)
                 {
                     current->addPV(ProdID, ProdQual, ProdQnty, ProdPrime);
 
                 }
             }
-
         }
+        return 0;
+    }
+    if(filepath.stem() == "prime")
+    {
+        for (auto &FinanceItem : js_buf.items())
+        {
+            json accounting = FinanceItem.value();
+            current->setAccount(accounting, "kind");
+        }
+        return 0;
+    }
+    if(filepath.stem() == "finance")
+    {
+        for (auto &FinanceItem : js_buf.items())
+        {
+            json accounting = FinanceItem.value();
+            current->setAccount(accounting, "item_kind");
+        }
+        return 0;
     }
     return 0;
 }
@@ -271,11 +294,11 @@ int CompanyParse(string serv, int company_id)
         Yellog::Error("Error while getting clear Unit_IDs!");
         return 8;
     }
-    cout << "Unit_IDs are cleared!" << endl;
+    //cout << "Unit_IDs are cleared!" << endl;
 
     Unit units[num_units];
-    vector<string> unit_files = {"summary.json", "artefact.json", "extension.json", "supply.json", "product.json"};
-    vector<string> unit_links = {"unit/summary?id=", "unit/artefact/attached?id=", "unit/extension/current?id=", "unit/supply/summary?id=", "unit/produce/summary?id="};
+    vector<string> unit_files = {"summary.json", "artefact.json", "extension.json", "supply.json", "product.json", "finance.json", "prime.json"};
+    vector<string> unit_links = {"summary?id=", "artefact/attached?id=", "extension/current?id=", "supply/summary?id=", "produce/summary?id=", "report/finance/expense?id=", "report/produce/primecost?id="};
     for (size_t i = 0; i < num_units; i++)
     {
         auto start = std::chrono::steady_clock::now();
@@ -293,12 +316,12 @@ int CompanyParse(string serv, int company_id)
             //cout << "Amount of files for each unit: " << unit_files.size() << endl;
             for (unsigned i = 0; i < unit_links.size(); i++)
             {
-                url = url_base + unit_links[i] + curr_id;
+                url = url_base + "unit/" + unit_links[i] + curr_id;
                 Yellog::Debug("URL is %s", url.c_str());
                 unit_info = curr_id_fold / unit_files[i];
                 if (!DownloadParseFormat(url, &data_units, &temp, unit_info))
                 {
-                    if (unit_links[i] == "unit/extension/current?id=")
+                    if (unit_links[i] == "extension/current?id=")
                     {
                         if (!limited) //local extension info
                         {
@@ -337,22 +360,21 @@ int CompanyParse(string serv, int company_id)
         {
             unit_info = curr_id_fold / unit_files[j];
 
-            Yellog::Debug("Current path is %s", unit_info.c_str());
+            //Yellog::Debug("Current path is %s", unit_info.c_str());
             int ProcStatus = process_unit(&units[i], unit_info);
             if(ProcStatus)
             {
-                Yellog::Error("Error while parsing unit info!");
+                //Yellog::Error("Error while parsing unit info!");
                 return ProcStatus;
             }
         }
         auto stop = std::chrono::steady_clock::now();
-
         auto durationOne = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         auto durationApprox = durationOne.count() * (num_units - 1);
         Yellog::Debug("Unit %s processed in %d  microseconds", curr_id.c_str(), durationOne.count());
         if(!i)
         {
-            Yellog::Info("Approximate time to execute: %f  seconds", durationApprox / 1000000.0);
+            //Yellog::Info("Approximate time to execute: %f  seconds", durationApprox / 1000000.0);
         }
         //cout << "Kind is " << kind << endl;
 
@@ -366,7 +388,7 @@ int CompanyParse(string serv, int company_id)
 
 
     Yellog::Info("Making summary file about company...");
-    fs::path place = exp_data / "companies";
+    fs::path place = exp_data / "companies" / serv;
     fs::create_directories(place);
     string finalFile = serv + "-" + to_string(company_id) + ".csv";
     place = place / finalFile;
@@ -384,7 +406,6 @@ int CompanyParse(string serv, int company_id)
     file.close();
     Yellog::Info("Data collection done! File is %s", finalFile.c_str());
     //cerr.rdbuf(cerr_buff);
-    curl_global_cleanup();
     curl_slist_free_all(log_info);
     return 0;
 }

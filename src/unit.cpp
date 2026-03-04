@@ -88,6 +88,7 @@ void Unit::printFields(fstream *file)
         cout << (to_string(ProdID) + "_Cost") << "; ";
     }
     cout << "TotalRawCost; ";
+    cout << "Salary; Management; Energy; Artefact; Rent; Amortization; Losses; Franchise; Generals; Costs";
     cout << endl;
     cout.rdbuf(cout_buff);
 }
@@ -103,7 +104,8 @@ void Unit::printValues(fstream *file)
     cout << refout(Tech) << refout(Employees) << refout(Salary) << refout(Qualification) << refout(Equip) << refout(EquipQual) << refout(Wear);
     cout << refout(Holidays) << refout(Fertility) << refout(CultQuality) << refout(Hardness) << refout(Productivity) << refout(ArtefactEnergy);
     cout << refout(ArtefactWear) << refout(ArtefactFeeder) << refout(ExtEstVal) << refout(ExtName);
-    int totals = 0;
+
+    float totals = 0;
     for (int ProdID : ProdNeedIDs)
     {
         auto Prod = find_if(ProdNeedVec.begin(), ProdNeedVec.end(), [ProdID]
@@ -123,6 +125,7 @@ void Unit::printValues(fstream *file)
         cout << ";";
         //cout <<
     }
+
     //cout << totals << ";";
     for (int ProdID : ProdIDs)
     {
@@ -145,6 +148,7 @@ void Unit::printValues(fstream *file)
     }
     cout << totals << ";";
     totals = 0;
+    cout << fixed << setprecision(2);
     for (int ProdID : ProdNeedIDs)
     {
         auto Prod = find_if(ProdNeedVec.begin(), ProdNeedVec.end(), [ProdID]
@@ -162,7 +166,12 @@ void Unit::printValues(fstream *file)
             totals += get<3>(*Prod) * get<2>(*Prod);
         }
         cout << ";";
-        //cout <<
+    }
+    cout << totals << ";";
+    for (float val : Account)
+    {
+        cout << val << ";";
+        totals += val;
     }
     cout << totals << ";";
     cout << endl;
@@ -177,9 +186,61 @@ void Unit::addPNV(int ID, float Qual, int Req, float Prime)
 void Unit::addPV(int ID, float Qual, int Qnty, float Prime)
 {
     this->ProdVec.push_back(make_tuple(ID, Qual, Qnty, Prime));
+    //this->
 }
 
 size_t Unit::sizePNV()
 {
     return this->ProdNeedVec.size();
+}
+
+void Unit::setAccount(json entry, string kind_js)
+{
+    string accountKind = entry.value(kind_js, "UNKNOWN");
+    double accountMoney = stod(entry.value("value", "0.0"));
+    if (accountKind == "salary" && this->Account[0] == 0)
+    {
+        this->Account[0] = Employees*Salary;
+        return;
+    }
+    if (accountKind == "management" && this->Account[1] == 0)
+    {
+        this->Account[1] = accountMoney;
+        return;
+    }
+    if (accountKind == "energy" && this->Account[2] == 0)
+    {
+        this->Account[2] = accountMoney;
+        return;
+    }
+    if (accountKind == "artefact_rent" && this->Account[3] == 0)
+    {
+        this->Account[3] = accountMoney;
+        return;
+    }
+    if (accountKind == "facilitiy_rent" && this->Account[4] == 0)
+    {
+        this->Account[4] = accountMoney;
+        return;
+    }
+    if (accountKind == "equipment_amortization" && this->Account[5] == 0)
+    {
+        this->Account[5] = accountMoney;
+        return;
+    }
+    if (accountKind == "losses" && this->Account[6] == 0)
+    {
+        this->Account[6] = accountMoney;
+        return;
+    }
+    if (accountKind == "franchise_assessments" && this->Account[7] == 0)
+    {
+        this->Account[7] = accountMoney;
+        return;
+    }
+    if (accountKind == "field_cost" && this->Account[8] == 0)
+    {
+        this->Account[8] = accountMoney;
+        return;
+    }
 }
