@@ -9,7 +9,7 @@ bool MarketsHistory(fs::path pathway, string city, string product)
     lock_guard<mutex> lock(file_lock);
     url = market_link + "history?geo=0/0/" + city + "&product_id=" + product;
     //cout << "History of market..." << "\t";
-    Yellog::Debug("URL (history): %s", url.c_str());
+    //Yellog::Debug("URL (history): %s", url.c_str());
     string tmp;
     if(connect(url, true, &tmp))
     {
@@ -72,7 +72,7 @@ bool MarketsMajorShops(fs::path pathway, string city, string product)
 {
     lock_guard<mutex> lock(file_lock);
     url = market_link + "units?geo=0/0/" + city + "&product_id=" + product;
-    Yellog::Debug("URL (majors): %s", url.c_str());
+    //Yellog::Debug("URL (majors): %s", url.c_str());
     fs::path shops_path = pathway / product / "majors.json";
     fstream shops_file;
     json data_shops;
@@ -108,8 +108,8 @@ bool LookLatest(vector <tuple<int, float, int, float, int>> &info, fs::path path
     {
         lock_guard<mutex> lock(file_lock);
         url = market_link + "metrics?lang=en&geo=0/0/" + pathway.parent_path().stem().c_str() + "&product_id=" + pathway.stem().c_str();
-        cout << "Today market..." << "\t";
-        Yellog::Debug("URL (today): %s", url.c_str());
+        //cout << "Today market..." << "\t";
+        //Yellog::Debug("URL (today): %s", url.c_str());
         string tmp;
         if(connect(url, true, &tmp) )
         {
@@ -146,50 +146,87 @@ fs::path markets;
 
 void cityCheck(int start_city, vector<int> cities, vector<int> products, bool HistoryNeeded, bool MajorsNeeded)
 {
-
     int num_cities = cities.size(), num_prods = products.size();
-    for (int i = start_city - 1; i < num_cities; i = i + threadsMax)
+    vector <tuple<int, float, int, float, int>> today_info;
+    for (int i = start_city; i < num_cities; i = i + threadsMax)
     {
-        vector <tuple<int, float, int, float, int>> today_info;
-        Yellog::Info("Thread %d\tCity %d (%d/%d)", start_city, cities[i], i + 1, num_cities);
         fs::path ext_city = ext_base / to_string (cities[i]);
         if(HistoryNeeded || MajorsNeeded)
             fs::create_directories(ext_city);
 
         for (int j = 0; j < num_prods; j++)
         {
-            Yellog::Info("Thread %d\tProduct %d (%d/%d)", start_city, products[j], j + 1, num_prods);
+            Yellog::Info("Thread %d\tCity %d (%d/%d)\tProduct %d (%d/%d)", start_city, cities[i], i + 1, num_cities, products[j], j + 1, num_prods);
             fs::path ext_prod = ext_city / to_string (products[j]);
             if(HistoryNeeded || MajorsNeeded)
                 fs::create_directories(ext_prod);
 
             if (HistoryNeeded)
-            {
                 MarketsHistory(ext_city, to_string(cities[i]), to_string(products[j]));
-            }
             LookLatest(today_info, ext_prod, HistoryNeeded);
             if(MajorsNeeded)
                 MarketsMajorShops(ext_city, to_string(cities[i]), to_string(products[j]));
-            //cout << endl;
         }
         file_lock.lock();
         Yellog::Info("Thread %d\t Forming today file for %d", start_city, cities[i]);
-        fs::path location = markets / ("markets-" + server + + "-" + to_string (cities[i]) + ".csv");
+        fs::path location = markets / ("retail-" + to_string (cities[i]) + ".csv");
         try_open_file(&file, location, WRITE, "Error! File for city not opened");
         file << "product_id;avg_price;local_market_size;total_market;index_min" << endl;
         //cout << "Size of vec is" << today_info.size() << endl;
         file << fixed;
         for(const auto& [id, avg_price, total_amount, market, index] : today_info)
         {
-
             file << id << ";" << avg_price << ";" << total_amount << ";" << market << ";" << index << endl;
         }
         file.close();
         file_lock.unlock();
+        today_info.clear();
+    }
+    return;
+}
 
+void prodCheck(vector<int> products)
+{
+    int num_prods = products.size();
+    vector <tuple<string, string, string, float, int, float, int>> Prodinfo;
+    fs::path ProdBase = markets / "Products";
+    fs::create_directories(ProdBase);
+    for (int j = 0; j < num_prods; j++)
+    {
+        Yellog::Info("Thread M\tProduct %d (%d/%d)", products[j], j + 1, num_prods);
+        url = market_link + "cities?pagesize=500&product_id=" + to_string(products[j]);
+        float worldMarket = 0;
+        string tmp;
+        connect(url, true, &tmp);
+        json retailInfo = json::parse(tmp);
+        retailInfo = retailInfo.at("data");
+        for (auto &item : retailInfo.items())
+        {
+            json city = item.value();
+            string country = city.value("country_name", "UNKNOWN");
+            string region = city.value("region_name", "UNKNOWN");
+            string cityName = city.value("city_name", "UNKNOWN");
+            float avg_price = stof(city.value("avg_price", "0.0"));
+            int total_amount = stoi(city.value("local_market_size", "0"));
+            float market = total_amount * avg_price;
+            int index = stoi(city.value("cologne_index", "0"));
+            Prodinfo.push_back(make_tuple(country, region, cityName, avg_price, total_amount, market, index));
+            worldMarket += market;
+            //cout << city.dump(4);
+        }
+        //cout << retailInfo.dump(4);
+        file_lock.lock();
+        fs::path location = ProdBase /  ("markets-" + to_string (products[j]) + ".csv");
+        try_open_file(&file, location, WRITE, "Error! File for city not opened");
+        file << "country;region;city;avg_price;local_market_size;total_market;percentage;index_min" << endl;
+        for(const auto& [country, region, cityName, avg_price, total_amount, market, index] : Prodinfo)
+        {
+            file << country << ";" << region << ";" << cityName << ";" << avg_price << ";" << total_amount << ";" << fixed << setprecision(2) << market << ";" << market / worldMarket * 100.0  << ";" << index << endl;
+        }
+        file.close();
+        file_lock.unlock();
     }
 
-    return;
 }
 
 
@@ -198,8 +235,8 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     locality(realm);
 
     market_link  = url_base + "marketing/report/retail/";
-    ext_base = ext_data / "markets";
-    markets = exp_data / "markets";
+    ext_base = ext_data / "markets" / realm;
+    markets = exp_data / "markets" / realm;
     fs::create_directories(markets);
 
     Yellog::Info("Parsing retail markets...");
@@ -213,22 +250,16 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     {
         threadsMax = threadsMax / 2;
     }
-    //cout << "th " << threadsMax << endl;
+    Yellog::Info("For parsing %d threads wil be used...", threadsMax);
     vector<thread> threads;
 
-    int num_downloads = 1;
-    if (HistoryNeeded)
-        num_downloads++;
-    if(MajorsNeeded)
-        num_downloads++;
-//    float estimates = num_cities * num_prods * num_downloads * wait_time / 1000.0;
-    //cout  << "www " <<wait_time << " r " << 1000ms << " i " << (1000ms/wait_time) <<endl;
-    //Yellog::Info("Estimated time for executing is %f", estimates);
 
-    for (int i = 1; i <= threadsMax; i++)
+    for (int i = 0; i < threadsMax; i++)
     {
         threads.emplace_back(cityCheck, i, cities, products, HistoryNeeded, MajorsNeeded);
     }
+
+    prodCheck(products);
 
     for (auto& t : threads)
     {
@@ -239,8 +270,8 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     }
 
     Yellog::Info("Parsing retail markets done!");
-
-// file_struc: prod_id, avg_price, local_market_size, (Col2*Col3), index_max
+    threads.clear();
+    curl_slist_free_all(log_info);
 
     return 0;
 }

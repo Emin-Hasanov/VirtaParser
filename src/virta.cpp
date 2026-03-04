@@ -216,29 +216,25 @@ void locality(string server)
         if (curl_global_init(CURL_GLOBAL_DEFAULT) != 0)
         {
             Yellog::Critical("curl_global_init() failed");
-            //return 1;
         }
-        Yellog::Debug("Initializing connection...");
+        Yellog::Info("Initializing connection...");
         url = "https://virtonomics.com/" + server + "/main/user/login";
-        Yellog::Debug("URL is %s", url.c_str());
+        //Yellog::Debug("URL is %s", url.c_str());
         string params = "userData[login]=" + VmaLogin + "&userData[password]=" + VmaPass;
 
         if (connect(url, false, &file, params))
         {
             Yellog::Warn("Connection to login failed! Working in local mode..." );
             work_local = true;
-            //cout << url_base << endl;
-            //return 1;
         }
         else
         {
             Yellog::Info("Connection to login successful...");
             url = url_base + "game/processing";
-            Yellog::Debug("URL is %s", url.c_str());
+            //Yellog::Debug("URL is %s", url.c_str());
             params = "";
             connect(url, true, &params);
             json data_turn =  json::parse(params);
-            //cout << data_turn.dump(2);
             if(data_turn.value("started", true) == true)
             {
                 Yellog::Warn("There is turn update now! Unable to receive info! Local mode...");
