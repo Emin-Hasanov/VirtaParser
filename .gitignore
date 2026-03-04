@@ -1,0 +1,6 @@
+
+# Shell scripts for building deprecated in favour to cmake
+*.sh
+
+#
+/build/
