@@ -1,6 +1,5 @@
 #include "retail.h"
 
-//string url;
 mutex file_lock;
 string market_link;
 
@@ -80,66 +79,6 @@ bool MarketsMajorShops(fs::path pathway, string city, string product)
     return true;
 }
 
-bool LookLatest(vector <tuple<int, float, int, float, int>> &info, fs::path pathway, bool historic)
-{
-    json js_tmp;
-    int id;
-    float avg_price;
-    int total_amount;
-    float market;
-    int index;
-    if(historic)
-    {
-        lock_guard<mutex> lock(file_lock);
-        fs::path lookup = pathway / "history.json";
-        fstream hist;
-        try_open_file(&hist, lookup, READ, "Opps!");
-        js_tmp = json::parse(hist);
-        auto last = js_tmp.rbegin();
-        js_tmp = last.value();
-        id = stoi(js_tmp.value("goods_id", "0"));
-        avg_price = stof(js_tmp.value("avg_price", "0.0"));
-        total_amount = stoi(js_tmp.value("local_market_size", "0"));
-        market = total_amount * avg_price;
-        index = stoi(js_tmp.value("index_min", "0"));
-        info.push_back(make_tuple(id, avg_price, total_amount, market, index));
-    }
-    else
-    {
-        lock_guard<mutex> lock(file_lock);
-        url = market_link + "metrics?lang=en&geo=0/0/" + pathway.parent_path().stem().c_str() + "&product_id=" + pathway.stem().c_str();
-        //cout << "Today market..." << "\t";
-        //Yellog::Debug("URL (today): %s", url.c_str());
-        string tmp;
-        if(connect(url, true, &tmp) )
-        {
-            cerr << "Error! Connection failed" << endl;
-            return false;
-        }
-        try
-        {
-            json js_tmp = json::parse(tmp);
-            //cout << js_tmp.dump(4);
-            id = stoi(pathway.stem().c_str());
-            avg_price = stof(js_tmp.value("avg_price", "0.0"));
-            total_amount = stoi(js_tmp.value("local_market_size", "0"));
-            market = total_amount * avg_price;
-            index = stoi(js_tmp.value("index_min", "0"));
-
-            info.push_back(make_tuple(id, avg_price, total_amount, market, index));
-        }
-        catch(...)
-        {
-            cerr << "Error! " << endl;
-            return false;
-        }
-        return true;
-    }
-
-    //cout <<"Info: "<< id << ";" << avg_price << ";" << total_amount << ";" << market << ";" << index << endl;
-    return true;
-}
-
 int threadsMax;
 fs::path ext_base;
 fs::path markets;
@@ -147,40 +86,21 @@ fs::path markets;
 void cityCheck(int start_city, vector<int> cities, vector<int> products, bool HistoryNeeded, bool MajorsNeeded)
 {
     int num_cities = cities.size(), num_prods = products.size();
-    vector <tuple<int, float, int, float, int>> today_info;
     for (int i = start_city; i < num_cities; i = i + threadsMax)
     {
         fs::path ext_city = ext_base / to_string (cities[i]);
-        if(HistoryNeeded || MajorsNeeded)
-            fs::create_directories(ext_city);
-
+        fs::create_directories(ext_city);
         for (int j = 0; j < num_prods; j++)
         {
             Yellog::Info("Thread %d\tCity %d (%d/%d)\tProduct %d (%d/%d)", start_city, cities[i], i + 1, num_cities, products[j], j + 1, num_prods);
             fs::path ext_prod = ext_city / to_string (products[j]);
             if(HistoryNeeded || MajorsNeeded)
                 fs::create_directories(ext_prod);
-
             if (HistoryNeeded)
                 MarketsHistory(ext_city, to_string(cities[i]), to_string(products[j]));
-            LookLatest(today_info, ext_prod, HistoryNeeded);
             if(MajorsNeeded)
                 MarketsMajorShops(ext_city, to_string(cities[i]), to_string(products[j]));
         }
-        file_lock.lock();
-        Yellog::Info("Thread %d\t Forming today file for %d", start_city, cities[i]);
-        fs::path location = markets / ("retail-" + to_string (cities[i]) + ".csv");
-        try_open_file(&file, location, WRITE, "Error! File for city not opened");
-        file << "product_id;avg_price;local_market_size;total_market;index_min" << endl;
-        //cout << "Size of vec is" << today_info.size() << endl;
-        file << fixed;
-        for(const auto& [id, avg_price, total_amount, market, index] : today_info)
-        {
-            file << id << ";" << avg_price << ";" << total_amount << ";" << market << ";" << index << endl;
-        }
-        file.close();
-        file_lock.unlock();
-        today_info.clear();
     }
     return;
 }
@@ -188,7 +108,7 @@ void cityCheck(int start_city, vector<int> cities, vector<int> products, bool Hi
 void prodCheck(vector<int> products)
 {
     int num_prods = products.size();
-    vector <tuple<string, string, string, float, int, float, int>> Prodinfo;
+    vector <tuple<string, string, string, int, int, float, int, float, int>> Prodinfo;
     fs::path ProdBase = markets / "Products";
     fs::create_directories(ProdBase);
     for (int j = 0; j < num_prods; j++)
@@ -206,26 +126,28 @@ void prodCheck(vector<int> products)
             string country = city.value("country_name", "UNKNOWN");
             string region = city.value("region_name", "UNKNOWN");
             string cityName = city.value("city_name", "UNKNOWN");
+            int cityID = stoi(city.value("city_id", "0"));
             float avg_price = stof(city.value("avg_price", "0.0"));
             int total_amount = stoi(city.value("local_market_size", "0"));
             float market = total_amount * avg_price;
             int index = stoi(city.value("cologne_index", "0"));
-            Prodinfo.push_back(make_tuple(country, region, cityName, avg_price, total_amount, market, index));
+            Prodinfo.push_back(make_tuple(country, region, cityName, cityID, products[j], avg_price, total_amount, market, index));
             worldMarket += market;
             //cout << city.dump(4);
         }
         //cout << retailInfo.dump(4);
         file_lock.lock();
-        fs::path location = ProdBase /  ("markets-" + to_string (products[j]) + ".csv");
-        try_open_file(&file, location, WRITE, "Error! File for city not opened");
+        fs::path location = ProdBase /  ("products-" + to_string (products[j]) + ".csv");
+        try_open_file(&file, location, WRITE, "Error! File for product not opened");
         file << "country;region;city;avg_price;local_market_size;total_market;percentage;index_min" << endl;
-        for(const auto& [country, region, cityName, avg_price, total_amount, market, index] : Prodinfo)
+        for(const auto& [country, region, cityName, cityID, prodID, avg_price, total_amount, market, index] : Prodinfo)
         {
             file << country << ";" << region << ";" << cityName << ";" << avg_price << ";" << total_amount << ";" << fixed << setprecision(2) << market << ";" << market / worldMarket * 100.0  << ";" << index << endl;
         }
         file.close();
         file_lock.unlock();
     }
+    //TODO: integrate generating files for 'needed' cities of used products
 
 }
 
@@ -240,6 +162,7 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     fs::create_directories(markets);
 
     Yellog::Info("Parsing retail markets...");
+
     threadsMax = thread::hardware_concurrency();
     //cout << "th " << threadsMax <<endl;
     if (threadsMax < 4)
@@ -250,17 +173,16 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     {
         threadsMax = threadsMax / 2;
     }
-    Yellog::Info("For parsing %d threads wil be used...", threadsMax);
+    Yellog::Info("For parsing %d threads can be used...", threadsMax);
     vector<thread> threads;
-
-
-    for (int i = 0; i < threadsMax; i++)
+    if(HistoryNeeded || MajorsNeeded)
     {
-        threads.emplace_back(cityCheck, i, cities, products, HistoryNeeded, MajorsNeeded);
+        for (int i = 0; i < threadsMax; i++)
+        {
+            threads.emplace_back(cityCheck, i, cities, products, HistoryNeeded, MajorsNeeded);
+        }
     }
-
     prodCheck(products);
-
     for (auto& t : threads)
     {
         if (t.joinable())
