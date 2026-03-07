@@ -105,12 +105,12 @@ void cityCheck(int start_city, vector<int> cities, vector<int> products, bool Hi
     return;
 }
 
-void prodCheck(vector<int> products)
+void TodayProds(vector<int> products, vector<tuple<string, string, string, int, int, float, int, float, int>>& Todays)
 {
     int num_prods = products.size();
-    vector <tuple<string, string, string, int, int, float, int, float, int>> Prodinfo;
     fs::path ProdBase = markets / "Products";
     fs::create_directories(ProdBase);
+    unsigned lastEntry = 0;
     for (int j = 0; j < num_prods; j++)
     {
         Yellog::Info("Thread M\tProduct %d (%d/%d)", products[j], j + 1, num_prods);
@@ -131,24 +131,60 @@ void prodCheck(vector<int> products)
             int total_amount = stoi(city.value("local_market_size", "0"));
             float market = total_amount * avg_price;
             int index = stoi(city.value("cologne_index", "0"));
-            Prodinfo.push_back(make_tuple(country, region, cityName, cityID, products[j], avg_price, total_amount, market, index));
+            Todays.push_back(make_tuple(country, region, cityName, cityID, products[j], avg_price, total_amount, market, index));
             worldMarket += market;
-            //cout << city.dump(4);
         }
-        //cout << retailInfo.dump(4);
         file_lock.lock();
         fs::path location = ProdBase /  ("products-" + to_string (products[j]) + ".csv");
         try_open_file(&file, location, WRITE, "Error! File for product not opened");
         file << "country;region;city;avg_price;local_market_size;total_market;percentage;index_min" << endl;
-        for(const auto& [country, region, cityName, cityID, prodID, avg_price, total_amount, market, index] : Prodinfo)
+        for(lastEntry; lastEntry < Todays.size(); lastEntry++)
         {
-            file << country << ";" << region << ";" << cityName << ";" << avg_price << ";" << total_amount << ";" << fixed << setprecision(2) << market << ";" << market / worldMarket * 100.0  << ";" << index << endl;
+            file << get<0>(Todays[lastEntry]) << ";" << get<1>(Todays[lastEntry]) << ";" << get<2>(Todays[lastEntry]) << ";" << get<5>(Todays[lastEntry]) << ";";
+            file << get<6>(Todays[lastEntry]) << ";" << fixed << setprecision(2) << get<7>(Todays[lastEntry]) << ";" << get<7>(Todays[lastEntry]) / worldMarket * 100.0 << ";" << get<8>(Todays[lastEntry]) << ";" << endl;
         }
         file.close();
         file_lock.unlock();
     }
-    //TODO: integrate generating files for 'needed' cities of used products
 
+}
+
+bool sortByCities(const tuple<string, string, string, int, int, float, int, float, int> &t1, const tuple<string, string, string, int, int, float, int, float, int> &t2)
+{
+    if (get<3>(t1) != get<3>(t2))
+    {
+        return get<3>(t1) < get<3>(t2);
+    }
+    return get<4>(t1) < get<4>(t2);
+}
+
+void TodayCities(vector<int> cities, vector <tuple<string, string, string, int, int, float, int, float, int>> Todays)
+{
+    fs::path CityBase = markets / "Cities";
+    fs::create_directories(CityBase);
+    for (int city : cities)
+    {
+        auto ent = find_if(Todays.begin(), Todays.end(), [city]
+                            (const tuple<string, string, string, int, int, float, int, float, int>& element)
+        {
+            return get<3>(element) == city;
+        });
+        if (ent == Todays.end())
+        {
+            cout << "0";
+        }
+        else
+        {
+            file_lock.lock();
+            fs::path location = CityBase /  ("cities-" + to_string (city) + ".csv");
+            try_open_file(&file, location, WRITE, "Error! File for city not opened");
+            //TODO: fill generated files with necessary info of city markets of different prods
+            file.close();
+            file_lock.unlock();
+
+        }
+    }
+    return;
 }
 
 
@@ -164,7 +200,6 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     Yellog::Info("Parsing retail markets...");
 
     threadsMax = thread::hardware_concurrency();
-    //cout << "th " << threadsMax <<endl;
     if (threadsMax < 4)
     {
         threadsMax = 1;
@@ -173,16 +208,20 @@ int MarketsParse(string realm, vector<int> cities, vector<int> products, bool Hi
     {
         threadsMax = threadsMax / 2;
     }
-    Yellog::Info("For parsing %d threads can be used...", threadsMax);
     vector<thread> threads;
     if(HistoryNeeded || MajorsNeeded)
     {
+        Yellog::Info("For parsing %d threads will be used...", threadsMax);
         for (int i = 0; i < threadsMax; i++)
         {
             threads.emplace_back(cityCheck, i, cities, products, HistoryNeeded, MajorsNeeded);
         }
     }
-    prodCheck(products);
+    vector <tuple<string, string, string, int, int, float, int, float, int>> TodayInfo;
+    TodayProds(products, TodayInfo);
+    //cout << "Size of Today: " <<TodayInfo.size() <<endl;
+    sort(TodayInfo.begin(), TodayInfo.end(), sortByCities);
+    TodayCities(cities, TodayInfo);
     for (auto& t : threads)
     {
         if (t.joinable())
