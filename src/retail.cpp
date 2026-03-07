@@ -160,29 +160,38 @@ bool sortByCities(const tuple<string, string, string, int, int, float, int, floa
 
 void TodayCities(vector<int> cities, vector <tuple<string, string, string, int, int, float, int, float, int>> Todays)
 {
+    int num_cities = cities.size();
     fs::path CityBase = markets / "Cities";
     fs::create_directories(CityBase);
-    for (int city : cities)
+    for (int i = 0; i < num_cities; i++)
     {
+        int city = cities[i];
+        Yellog::Info("Thread M\tCity %d (%d/%d)", city, i + 1, num_cities);
+        file_lock.lock();
+        fs::path location = CityBase /  ("cities-" + to_string (city) + ".csv");
+        try_open_file(&file, location, WRITE, "Error! File for city not opened");
+        file << "product;avg_price;local_market_size;total_market;index_min" << endl;
         auto ent = find_if(Todays.begin(), Todays.end(), [city]
-                            (const tuple<string, string, string, int, int, float, int, float, int>& element)
+                           (const tuple<string, string, string, int, int, float, int, float, int>& element)
         {
             return get<3>(element) == city;
         });
-        if (ent == Todays.end())
+        while (ent != Todays.end())
         {
-            cout << "0";
+            int prod = get<4>(*ent);
+            float avg = get<5>(*ent);
+            int sizee = get<6>(*ent);
+            float total = get<7>(*ent);
+            int index = get<8>(*ent);
+            file << prod << ";" << avg << ";" << sizee << ";" << total << ";" << index << endl;
+            ent = find_if(ent + 1, Todays.end(), [city]
+                          (const tuple<string, string, string, int, int, float, int, float, int>& element)
+            {
+                return get<3>(element) == city;
+            });
         }
-        else
-        {
-            file_lock.lock();
-            fs::path location = CityBase /  ("cities-" + to_string (city) + ".csv");
-            try_open_file(&file, location, WRITE, "Error! File for city not opened");
-            //TODO: fill generated files with necessary info of city markets of different prods
-            file.close();
-            file_lock.unlock();
-
-        }
+        file.close();
+        file_lock.unlock();
     }
     return;
 }
