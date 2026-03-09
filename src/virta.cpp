@@ -48,7 +48,7 @@ string valnut (json js, string key, string def)
             return js.value(key, def);
         }
     }
-    catch(json::out_of_range)
+    catch(json::out_of_range &e)
     {
         return def;
     }
@@ -170,6 +170,8 @@ void fill_vs(string str, vector<string> *v)
 
 bool DownloadParseFormat(string link, json* json_entry, fstream *target, string pathway)
 {
+    mutex DPFLock;
+    lock_guard<mutex> lock(DPFLock);
     string tmp;
     if (connect<string>(link, true, &tmp))
     {

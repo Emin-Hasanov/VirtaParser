@@ -200,7 +200,7 @@ void Unit::setAccount(json entry, string kind_js)
     double accountMoney = stod(entry.value("value", "0.0"));
     if (accountKind == "salary" && this->Account[0] == 0)
     {
-        this->Account[0] = Employees*Salary;
+        this->Account[0] = Employees * Salary;
         return;
     }
     if (accountKind == "management" && this->Account[1] == 0)

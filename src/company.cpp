@@ -325,8 +325,15 @@ int CompanyParse(string serv, int company_id)
                     {
                         if (!limited) //local extension info
                         {
-                            json curr_ext = data_ext.value(curr_id, false);
-                            //cout << curr_ext.dump(4) << endl;
+                            json curr_ext;
+                            try
+                            {
+                                curr_ext = data_ext.at(curr_id);
+                            }
+                            catch (json::out_of_range &e)
+                            {
+                                curr_ext = false;
+                            }
                             try_open_file(&temp, unit_info, WRITE, "Unable to write ext file!");
                             temp << curr_ext.dump(4) << endl;
                             temp.close();
