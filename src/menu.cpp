@@ -63,7 +63,6 @@ vector<int> products;
     */
 void launch_args(int args_num, char const *args_vals[])
 {
-    //cout << "there are " << thread::hardware_concurrency() << " available threads..." << endl;
     if (args_num > 1)
     {
         Yellog::Info("Working in (semi)-automatic mode...");
@@ -72,7 +71,6 @@ void launch_args(int args_num, char const *args_vals[])
     for (int i = 0; i < args_num; i++)
     {
         string current_arg = args_vals[i];
-        //cout << "Current is " << current_arg << endl;
         if (current_arg == "-o")
         {
             option = stoi(args_vals[i + 1]);
@@ -136,78 +134,72 @@ void launch_args(int args_num, char const *args_vals[])
                 string FilterID = "";
                 string GeoTypeURL = "country";
                 url = url_base + "geo/" + GeoTypeURL + "/browse";
-                //geo/country/browse
                 cout << "URL is " << url << endl;
                 string GeoBuf;
                 connect(url, false, &GeoBuf);
                 json GeoJSON = json::parse(GeoBuf);
-                for (auto& el : GeoJSON.items())
+                //cout << GeoJSON.dump(4) << endl;
+                try
                 {
-                    json GeoInfo = el.value();
-                    if (GeoInfo.value("name", "Unknown") == geo)
-                    {
-                        FilterID = GeoInfo.value("country_id", "0");
-                        //cout << GeoInfo.value("country_id", "0") << endl;
-                    }
-                    //cout << GeoInfo.value("country_name", "Unknown") << endl;
-                }
-                cout << "FilterID [country] is " << FilterID << endl;
-                if (FilterID == "")
-                {
-                    GeoBuf.clear();
-                    GeoTypeURL = "region";
-                    url = url_base + "geo/" + GeoTypeURL + "/browse";
-                    //geo/country/browse
-                    cout << "URL is " << url << endl;
-                    connect(url, false, &GeoBuf);
-                    GeoJSON = json::parse(GeoBuf);
                     for (auto& el : GeoJSON.items())
                     {
                         json GeoInfo = el.value();
                         if (GeoInfo.value("name", "Unknown") == geo)
                         {
-                            FilterID = GeoInfo.value("region_id", "0");
-                            //cout << GeoInfo.value("country_id", "0") << endl;
+                            FilterID = GeoInfo.value("country_id", "0");
                         }
-                        //cout << GeoInfo.value("name", "Unknown") << endl;
                     }
-                    cout << "FilterID [region] is " << FilterID << endl;
-                }
-                if(FilterID == "")
-                    cout << "FilterID not found! "  << endl;
-                else
-                {
-                    GeoBuf.clear();
-                    url = url_base + "geo/city/browse";
-                    GeoTypeURL += "_id";
-                    cout << "Type is " << GeoTypeURL << endl;
-                    //geo/country/browse
-                    cout << "URL is " << url << endl;
-                    connect(url, false, &GeoBuf);
-                    GeoJSON = json::parse(GeoBuf);
-                    cout << "Cities:" << GeoJSON.size() << endl;
-                    for (auto& el : GeoJSON.items())
+                    cout << "FilterID [country] is " << FilterID << endl;
+                    if (FilterID == "")
                     {
-                        json GeoInfo = el.value();
-
-                        if (GeoInfo.value(GeoTypeURL, "0") == FilterID)
+                        GeoBuf.clear();
+                        GeoTypeURL = "region";
+                        url = url_base + "geo/" + GeoTypeURL + "/browse";
+                        cout << "URL is " << url << endl;
+                        connect(url, false, &GeoBuf);
+                        GeoJSON = json::parse(GeoBuf);
+                        for (auto& el : GeoJSON.items())
                         {
-                            cities.push_back(stoi(GeoInfo.value("city_id", "0")));
-                            //FilterID = GeoInfo.value("region_id", "0");
-                            //cout << GeoInfo.value("country_id", "0") << endl;
+                            json GeoInfo = el.value();
+                            if (GeoInfo.value("name", "Unknown") == geo)
+                            {
+                                FilterID = GeoInfo.value("region_id", "0");
+                            }
                         }
+                        cout << "FilterID [region] is " << FilterID << endl;
+                    }
+                    if(FilterID == "")
+                        cout << "FilterID not found! "  << endl;
+                    else
+                    {
+                        GeoBuf.clear();
+                        url = url_base + "geo/city/browse";
+                        GeoTypeURL += "_id";
+                        cout << "Type is " << GeoTypeURL << endl;
+                        cout << "URL is " << url << endl;
+                        connect(url, false, &GeoBuf);
+                        GeoJSON = json::parse(GeoBuf);
+                        //cout << "Cities:" << GeoJSON.size() << endl;
+                        for (auto& el : GeoJSON.items())
+                        {
+                            json GeoInfo = el.value();
+
+                            if (GeoInfo.value(GeoTypeURL, "0") == FilterID)
+                            {
+                                cities.push_back(stoi(GeoInfo.value("city_id", "0")));
+                            }
+                        }
+                        cout << "Cities catched:" << cities.size() << endl;
                     }
                 }
-                //cout << GeoInfo.dump(4) << endl;
+                catch (json::out_of_range)
+                {
+                    cout << "Error!" << endl;
+                }
             }
+            sort(cities.begin(), cities.end());
             if(cities.size() != 0)
                 cout << "Cities IDs added sucessully!" << endl;
-            // cout << "City ids are:" << endl;
-            // for (int city : cities)
-            // {
-            //     cout << city << "; ";
-            // }
-            // cout << endl;
         }
         if (current_arg == "-p")
         {
@@ -254,11 +246,13 @@ void launch_args(int args_num, char const *args_vals[])
                     if (ProdInfo.value("name", "Unknown") == ProdCat)
                     {
                         FilterID = ProdInfo.value("id", "0");
-                        //cout << GeoInfo.value("country_id", "0") << endl;
                     }
-                    //cout << GeoInfo.value("name", "Unknown") << endl;
                 }
                 cout << "FilterID [ProdCat] is " << FilterID << endl;
+                if (FilterID == "")
+                {
+                    //cout
+                }
                 ProdBuf.clear();
                 url = url_base + "product/goods";
                 cout << "URL is " << url << endl;
@@ -270,15 +264,16 @@ void launch_args(int args_num, char const *args_vals[])
                     if (ProdInfo.value("category_id", "0") == FilterID)
                     {
                         products.push_back(stoi(ProdInfo.value("id", "0")));
-                        //cout << GeoInfo.value("country_id", "0") << endl;
                     }
-                    //cout << GeoInfo.value("name", "Unknown") << endl;
                 }
-                //cout << ProdJSON.dump(4) << endl;
-
+                cout << "Products catched:" << products.size() << endl;
             }
+            sort(products.begin(), products.end());
             if(products.size() != 0)
+            {
                 Yellog::Info("Product IDs added sucessully!");
+            }
+
             /*cout << "Product ids are:" << endl;
             for (int prods : products)
             {
@@ -338,14 +333,7 @@ int main(int argc, char const *argv[])
         VmaPass = getenv("vma_password");
     }
 
-
     int server_type;
-    //string server;
-
-    //cout << "Arguments (" << argc << ") of prog is: " << endl;
-
-
-
 
     int result;
     do
@@ -386,6 +374,7 @@ int main(int argc, char const *argv[])
 
             cout << "Server is " << server << " and id is " << company_id << endl;
             result = CompanyParse(server, company_id);
+            curl_global_cleanup();
             if (result)
             {
                 cout << "Error happened during company parsing..." << result << endl;
@@ -447,6 +436,7 @@ int main(int argc, char const *argv[])
                         cities.push_back(stoi(tmp));
                     }
                     LocalIDs.close();
+                    sort(cities.begin(), cities.end());
                     //getline()
                 }
             }
@@ -476,6 +466,7 @@ int main(int argc, char const *argv[])
                     }
                     LocalIDs.close();
                 }
+                sort(products.begin(), products.end());
             }
             if(!automat)
             {
@@ -514,11 +505,15 @@ int main(int argc, char const *argv[])
             }
             cout << endl;
             result = MarketsParse(server, cities, products, mark_hist, mark_maj);
+            cities.clear();
+            products.clear();
+            curl_global_cleanup();
             if (result)
             {
                 cout << "Error happened during markets parsing..." << result << endl;
                 if (automat)
                 {
+
                     return result;
                 }
             }
