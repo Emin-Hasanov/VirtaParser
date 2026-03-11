@@ -113,6 +113,7 @@ void TodayProds(vector<int> products, vector<tuple<string, string, string, int, 
     unsigned lastEntry = 0;
     for (int j = 0; j < num_prods; j++)
     {
+        file_lock.lock();
         Yellog::Info("Thread M\tProduct %d (%d/%d)", products[j], j + 1, num_prods);
         url = market_link + "cities?pagesize=500&product_id=" + to_string(products[j]);
         float worldMarket = 0;
@@ -134,7 +135,7 @@ void TodayProds(vector<int> products, vector<tuple<string, string, string, int, 
             Todays.push_back(make_tuple(country, region, cityName, cityID, products[j], avg_price, total_amount, market, index));
             worldMarket += market;
         }
-        file_lock.lock();
+
         fs::path location = ProdBase /  ("products-" + to_string (products[j]) + ".csv");
         try_open_file(&file, location, WRITE, "Error! File for product not opened");
         file << "country;region;city;avg_price;local_market_size;total_market;percentage;index_min" << endl;
