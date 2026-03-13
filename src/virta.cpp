@@ -1,6 +1,6 @@
 #include "virta.h"
 
-int wait_time = 1;
+unsigned tries = 3;
 struct curl_slist *log_info;
 
 fs::path exp_data = "data";

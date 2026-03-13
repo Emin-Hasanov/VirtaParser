@@ -17,7 +17,7 @@ using namespace std;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-extern int wait_time;
+extern unsigned tries;
 extern struct curl_slist *log_info;
 extern fs::path exp_data;
 extern fs::path ext_data;
@@ -43,6 +43,7 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
 {
     CURL *curl;
     CURLcode res;
+    unsigned cur_try = 1;
 
     curl = curl_easy_init();
     if(curl)
@@ -96,7 +97,14 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
         {
             fprintf(stderr, "curl_easy_perform() failed: %s\n",
                     curl_easy_strerror(res));
-            return 1;
+                    if (cur_try==tries)
+                    {
+                        return 1;
+                    }
+                    else
+                    {
+                        cur_try++;
+                    }
         }
 
 
