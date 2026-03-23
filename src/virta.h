@@ -91,22 +91,28 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
 
         /* Perform the request, result gets the return code */
-        res = curl_easy_perform(curl);
-        /* Check for errors */
-        if(res != CURLE_OK)
+        while(cur_try < tries)
         {
-            fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                    curl_easy_strerror(res));
-                    if (cur_try==tries)
-                    {
-                        return 1;
-                    }
-                    else
-                    {
-                        cur_try++;
-                    }
+            res = curl_easy_perform(curl);
+            /* Check for errors */
+            if(res != CURLE_OK)
+            {
+                fprintf(stderr, "(try %d) curl_easy_perform() failed: %s\n", cur_try,
+                        curl_easy_strerror(res));
+                if (cur_try == tries)
+                {
+                    return 1;
+                }
+                else
+                {
+                    cur_try++;
+                }
+            }
+            else
+            {
+                break;
+            }
         }
-
 
         if (!cookies_exist) //retrieve cookies after log-in
         {
@@ -123,14 +129,9 @@ extern int connect(string link, bool cookies_exist, T *WriteTo, string post_para
         curl_easy_cleanup(curl);
         //
         //this_thread::sleep_for(chrono::milliseconds(wait_time));
-        //Yellog::Debug("%s written to %x", link.c_str(), &WriteTo);
     }
-
     return 0;
 }
-//extern int connect(string link, bool cookies_exist, string *strr, string post_params = "");
-
-//extern int connect(string link, bool cookies_exist, fstream *file, string post_params = "");
 
 extern string valnut (json js, string key, string def);
 
